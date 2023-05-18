@@ -29,7 +29,6 @@ def test_debug_info():
 def test_print_debug_info():
     # Light smoke test.
     print_debug_info()
-    assert 1 == 1
 
 
 def test_register_log():

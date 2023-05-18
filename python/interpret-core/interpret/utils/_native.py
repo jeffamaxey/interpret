@@ -120,9 +120,9 @@ class Native:
     @staticmethod
     def get_count_scores_c(n_classes):
         # this should reflect how the C code represents scores
-        if n_classes < 0 or 2 == n_classes:
+        if n_classes < 0 or n_classes == 2:
             return 1
-        elif 2 < n_classes:
+        elif n_classes > 2:
             return n_classes
         else:
             return 0
@@ -185,7 +185,7 @@ class Native:
         if random_state is None:
             return None  # non-deterministic
 
-        if random_state < -2147483648 or 2147483647 < random_state:
+        if random_state < -2147483648 or random_state > 2147483647:
             msg = f'random_state of "{random_state}" must be cleaned to be a 32-bit signed integer before calling create_rng'
             _log.error(msg)
             raise Exception(msg)
@@ -224,24 +224,22 @@ class Native:
     def generate_seed(self, rng):
         # Unlike our other functions, this will generate a 32-bit seed even if rng is None
         seed = ct.c_int32(0)
-        return_code = self._unsafe.GenerateSeed(
-            Native._make_pointer(rng, np.ubyte, is_null_allowed=True), ct.byref(seed)
-        )
-        if return_code:  # pragma: no cover
+        if return_code := self._unsafe.GenerateSeed(
+            Native._make_pointer(rng, np.ubyte, is_null_allowed=True),
+            ct.byref(seed),
+        ):
             raise Native._get_native_exception(return_code, "GenerateSeed")
 
         return seed.value
 
     def generate_gaussian_random(self, rng, stddev, count):
         random_numbers = np.empty(count, dtype=np.float64, order="C")
-        return_code = self._unsafe.GenerateGaussianRandom(
+        if return_code := self._unsafe.GenerateGaussianRandom(
             Native._make_pointer(rng, np.ubyte, is_null_allowed=True),
             stddev,
             count,
             Native._make_pointer(random_numbers, np.float64),
-        )
-
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "GenerateGaussianRandom")
 
         return random_numbers
@@ -270,15 +268,14 @@ class Native:
 
         cuts = np.empty(max_cuts, dtype=np.float64, order="C")
         count_cuts = ct.c_int64(max_cuts)
-        return_code = self._unsafe.CutQuantile(
+        if return_code := self._unsafe.CutQuantile(
             X_col.shape[0],
             Native._make_pointer(X_col, np.float64),
             min_samples_bin,
             is_rounded,
             ct.byref(count_cuts),
             Native._make_pointer(cuts, np.float64),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "CutQuantile")
 
         return cuts[: count_cuts.value]
@@ -289,13 +286,12 @@ class Native:
 
         cuts = np.empty(max_cuts, dtype=np.float64, order="C")
         count_cuts = ct.c_int64(max_cuts)
-        return_code = self._unsafe.CutWinsorized(
+        if return_code := self._unsafe.CutWinsorized(
             X_col.shape[0],
             Native._make_pointer(X_col, np.float64),
             ct.byref(count_cuts),
             Native._make_pointer(cuts, np.float64),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "CutWinsorized")
 
         return cuts[: count_cuts.value]
@@ -320,8 +316,8 @@ class Native:
         high_graph_bound = ct.c_double(np.nan)
         return_code = self._unsafe.SuggestGraphBounds(
             len(cuts),
-            cuts[0] if 0 < len(cuts) else np.nan,
-            cuts[-1] if 0 < len(cuts) else np.nan,
+            cuts[0] if len(cuts) > 0 else np.nan,
+            cuts[-1] if len(cuts) > 0 else np.nan,
             min_feature_val,
             max_feature_val,
             ct.byref(low_graph_bound),
@@ -335,14 +331,13 @@ class Native:
     def discretize(self, X_col, cuts):
         # TODO: for speed and efficiency, we should instead accept in the bin_indexes array
         bin_indexes = np.empty(X_col.shape[0], dtype=np.int64, order="C")
-        return_code = self._unsafe.Discretize(
+        if return_code := self._unsafe.Discretize(
             X_col.shape[0],
             Native._make_pointer(X_col, np.float64),
             cuts.shape[0],
             Native._make_pointer(cuts, np.float64),
             Native._make_pointer(bin_indexes, np.int64),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "Discretize")
 
         return bin_indexes
@@ -395,20 +390,19 @@ class Native:
         return n_bytes
 
     def fill_dataset_header(self, n_features, n_weights, n_targets, dataset):
-        return_code = self._unsafe.FillDataSetHeader(
+        if return_code := self._unsafe.FillDataSetHeader(
             n_features,
             n_weights,
             n_targets,
             dataset.nbytes,
             Native._make_pointer(dataset, np.ubyte),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "FillDataSetHeader")
 
     def fill_feature(
         self, n_bins, is_missing, is_unknown, is_nominal, bin_indexes, dataset
     ):
-        return_code = self._unsafe.FillFeature(
+        if return_code := self._unsafe.FillFeature(
             n_bins,
             is_missing,
             is_unknown,
@@ -417,47 +411,42 @@ class Native:
             Native._make_pointer(bin_indexes, np.int64),
             dataset.nbytes,
             Native._make_pointer(dataset, np.ubyte),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "FillFeature")
 
     def fill_weight(self, weights, dataset):
-        return_code = self._unsafe.FillWeight(
+        if return_code := self._unsafe.FillWeight(
             len(weights),
             Native._make_pointer(weights, np.float64),
             dataset.nbytes,
             Native._make_pointer(dataset, np.ubyte),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "FillWeight")
 
     def fill_classification_target(self, n_classes, targets, dataset):
-        return_code = self._unsafe.FillClassificationTarget(
+        if return_code := self._unsafe.FillClassificationTarget(
             n_classes,
             len(targets),
             Native._make_pointer(targets, np.int64),
             dataset.nbytes,
             Native._make_pointer(dataset, np.ubyte),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "FillClassificationTarget")
 
     def fill_regression_target(self, targets, dataset):
-        return_code = self._unsafe.FillRegressionTarget(
+        if return_code := self._unsafe.FillRegressionTarget(
             len(targets),
             Native._make_pointer(targets, np.float64),
             dataset.nbytes,
             Native._make_pointer(dataset, np.ubyte),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "FillRegressionTarget")
 
     def check_dataset(self, dataset):
-        return_code = self._unsafe.CheckDataSet(
+        if return_code := self._unsafe.CheckDataSet(
             dataset.nbytes,
             Native._make_pointer(dataset, np.ubyte),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "CheckDataSet")
 
     def extract_dataset_header(self, dataset):
@@ -466,14 +455,13 @@ class Native:
         n_weights = ct.c_int64(-1)
         n_targets = ct.c_int64(-1)
 
-        return_code = self._unsafe.ExtractDataSetHeader(
+        if return_code := self._unsafe.ExtractDataSetHeader(
             Native._make_pointer(dataset, np.ubyte),
             ct.byref(n_samples),
             ct.byref(n_features),
             ct.byref(n_weights),
             ct.byref(n_targets),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "ExtractDataSetHeader")
 
         return n_samples.value, n_features.value, n_weights.value, n_targets.value
@@ -481,12 +469,11 @@ class Native:
     def extract_bin_counts(self, dataset, n_features):
         bin_counts = np.empty(n_features, dtype=np.int64, order="C")
 
-        return_code = self._unsafe.ExtractBinCounts(
+        if return_code := self._unsafe.ExtractBinCounts(
             Native._make_pointer(dataset, np.ubyte),
             n_features,
             Native._make_pointer(bin_counts, np.int64),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "ExtractBinCounts")
 
         return bin_counts
@@ -494,12 +481,11 @@ class Native:
     def extract_target_classes(self, dataset, n_targets):
         class_counts = np.empty(n_targets, dtype=np.int64, order="C")
 
-        return_code = self._unsafe.ExtractTargetClasses(
+        if return_code := self._unsafe.ExtractTargetClasses(
             Native._make_pointer(dataset, np.ubyte),
             n_targets,
             Native._make_pointer(class_counts, np.int64),
-        )
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "ExtractTargetClasses")
 
         return class_counts
@@ -511,14 +497,12 @@ class Native:
 
         bag = np.empty(count_samples, dtype=np.int8, order="C")
 
-        return_code = self._unsafe.SampleWithoutReplacement(
+        if return_code := self._unsafe.SampleWithoutReplacement(
             Native._make_pointer(rng, np.ubyte, is_null_allowed=True),
             count_training_samples,
             count_validation_samples,
             Native._make_pointer(bag, np.int8),
-        )
-
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "SampleWithoutReplacement")
 
         return bag
@@ -535,16 +519,14 @@ class Native:
 
         bag = np.empty(count_samples, dtype=np.int8, order="C")
 
-        return_code = self._unsafe.SampleWithoutReplacementStratified(
+        if return_code := self._unsafe.SampleWithoutReplacementStratified(
             Native._make_pointer(rng, np.ubyte, is_null_allowed=True),
             n_classes,
             count_training_samples,
             count_validation_samples,
             Native._make_pointer(targets, np.int64),
             Native._make_pointer(bag, np.int8),
-        )
-
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(
                 return_code, "SampleWithoutReplacementStratified"
             )
@@ -560,14 +542,12 @@ class Native:
         link = ct.c_int32(0)
         link_param = ct.c_double(np.nan)
 
-        return_code = self._unsafe.DetermineLinkFunction(
+        if return_code := self._unsafe.DetermineLinkFunction(
             is_private,
             objective.encode("ascii"),
             ct.byref(link),
             ct.byref(link_param),
-        )
-
-        if return_code:  # pragma: no cover
+        ):
             raise Native._get_native_exception(return_code, "DetermineLinkFunction")
 
         link_str = self._unsafe.GetLinkFunctionStr(link.value)

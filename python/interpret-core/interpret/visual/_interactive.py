@@ -33,7 +33,7 @@ def set_visualize_provider(provider):
         _current_module.visualize_provider = provider
     else:  # pragma: no cover
         raise ValueError(
-            "Object of type {} is not a visualize provider.".format(type(provider))
+            f"Object of type {type(provider)} is not a visualize provider."
         )
 
 
@@ -57,11 +57,10 @@ def get_show_addr():
         Address tuple (ip, port).
     """
     if isinstance(_current_module.visualize_provider, DashProvider):
-        addr = (
+        return (
             _current_module.visualize_provider.app_runner.ip,
             _current_module.visualize_provider.app_runner.port,
         )
-        return addr
     else:
         return None
 
@@ -88,7 +87,7 @@ def status_show_server():
 
     if isinstance(_current_module.visualize_provider, DashProvider):
         status_dict["app_runner_exists"] = True
-        status_dict.update(_current_module.visualize_provider.app_runner.status())
+        status_dict |= _current_module.visualize_provider.app_runner.status()
     else:
         status_dict["app_runner_exists"] = False
 
@@ -113,9 +112,7 @@ def init_show_server(addr=None, base_url=None, use_relative_links=False):
         shutdown_show_server()
 
     _log.info(
-        "Replacing visualize provider: {} with {}".format(
-            type(_current_module.visualize_provider), type(DashProvider)
-        )
+        f"Replacing visualize provider: {type(_current_module.visualize_provider)} with {type(DashProvider)}"
     )
     set_visualize_provider(
         DashProvider.from_address(
@@ -128,7 +125,7 @@ def init_show_server(addr=None, base_url=None, use_relative_links=False):
         _current_module.visualize_provider.app_runner.ip,
         _current_module.visualize_provider.app_runner.port,
     )
-    _log.info("Running dash provider at {}".format(addr))
+    _log.info(f"Running dash provider at {addr}")
 
     return None
 
@@ -137,7 +134,7 @@ def _get_integer_key(key, explanation):
     if key is not None and not isinstance(key, int):
         series = explanation.selector[explanation.selector.columns[0]]
         if key not in series.values:  # pragma: no cover
-            raise ValueError("Key {} not in explanation's selector".format(key))
+            raise ValueError(f"Key {key} not in explanation's selector")
         key = series[series == key].index[0]
 
     return key
@@ -200,8 +197,7 @@ def show_link(explanation, share_tables=None):
     )
 
     try:
-        url = _current_module.visualize_provider.app_runner.display_link(explanation)
-        return url
+        return _current_module.visualize_provider.app_runner.display_link(explanation)
     except Exception as e:  # pragma: no cover
         _log.error(e, exc_info=True)
         raise e

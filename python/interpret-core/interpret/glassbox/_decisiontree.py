@@ -123,29 +123,25 @@ class TreeExplanation(ExplanationMixin):
 
         # Handle overall graphs
         if key is None:
-            component = cyto.Cytoscape(
+            return cyto.Cytoscape(
                 layout={"name": "breadthfirst", "roots": '[id = "1"]'},
                 style={"width": "100%", "height": "390px"},
                 # userZoomingEnabled=False,
                 elements=data_dict["nodes"] + data_dict["edges"],
                 stylesheet=stylesheet,
             )
-            return component
-
         # Handle local instance graphs
         if self.explanation_type == "local":
             edges = data_dict["edges"]
             nodes = data_dict["nodes"]
             new_edges = self._weight_edges(edges, data_dict["decision"])
             new_nodes = self._weight_nodes_decision(nodes, data_dict["decision"])
-            component = cyto.Cytoscape(
+            return cyto.Cytoscape(
                 layout={"name": "breadthfirst", "roots": '[id = "1"]'},
                 style={"width": "100%", "height": "390px"},
                 elements=new_nodes + new_edges,
                 stylesheet=stylesheet,
             )
-            return component
-        # Handle global feature graphs
         elif self.explanation_type == "global":
             feature = self.feature_names[key]
             nodes = data_dict["nodes"]
@@ -166,18 +162,15 @@ class TreeExplanation(ExplanationMixin):
                         </style>
                         <div class='center'><h1>"{0}" is not used by this tree.</h1></div>
                     """
-                figure = figure.format(feature)
-                return figure
-
+                return figure.format(feature)
             new_nodes = self._weight_nodes_feature(nodes, feature)
             elements = new_nodes + data_dict["edges"]
-            component = cyto.Cytoscape(
+            return cyto.Cytoscape(
                 layout={"name": "breadthfirst", "roots": '[id = "1"]'},
                 style={"width": "100%", "height": "390px"},
                 elements=elements,
                 stylesheet=stylesheet,
             )
-            return component
         else:  # pragma: no cover
             msg = "Cannot handle type {0}".format(self.explanation_type)
             _log.error(msg)
@@ -204,10 +197,7 @@ class TreeExplanation(ExplanationMixin):
         new_nodes = []
         for node in nodes:
             node_id = int(node["data"]["id"])
-            if node_id in decision_nodes:
-                node["data"]["weight"] = 2
-            else:
-                node["data"]["weight"] = 1
+            node["data"]["weight"] = 2 if node_id in decision_nodes else 1
             new_nodes.append(node)
 
         return new_nodes
@@ -219,10 +209,7 @@ class TreeExplanation(ExplanationMixin):
         new_nodes = []
         for node in nodes:
             feature = node["data"]["feature"]
-            if feature == feature_name:
-                node["data"]["weight"] = 2
-            else:
-                node["data"]["weight"] = 1
+            node["data"]["weight"] = 2 if feature == feature_name else 1
             new_nodes.append(node)
 
         return new_nodes
@@ -495,11 +482,7 @@ class BaseShallowDecisionTree:
 
             counter["node"] += 1
             node_id = str(counter["node"])
-            if is_classifier(self):
-                value_str = "# Obs: "
-            else:
-                value_str = "E[Y]: "
-
+            value_str = "# Obs: " if is_classifier(self) else "E[Y]: "
             if feature is not None and threshold is not None:
                 value_str += ", ".join([str(v) for v in value[0]])
                 label_str = "{0} <= {1:.2f}\n{2}".format(feature, threshold, value_str)

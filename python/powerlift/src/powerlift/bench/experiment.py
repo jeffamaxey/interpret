@@ -225,9 +225,7 @@ class Experiment:
                     meta = {}
                 if isinstance(method, str):
                     method = Method.from_name(method)
-                elif isinstance(method, Method):
-                    pass
-                else:
+                elif not isinstance(method, Method):
                     raise TypeError(f"Cannot handle method type: {type(method)}")
                 method_id, _ = self._store.get_or_create_method(
                     method.name,

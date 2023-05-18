@@ -42,7 +42,7 @@ def _build_error_frame(msg):
 
 def _build_base64_frame_src(html_str):
     html_hex64 = base64.b64encode(html_str.encode("utf-8")).decode("ascii")
-    return "data:text/html;base64,{}".format(html_hex64)
+    return f"data:text/html;base64,{html_hex64}"
 
 
 def _build_cytoscape_json(cytoscape):
@@ -85,7 +85,7 @@ def _build_viz_figure(visualization, detected_envs=None):
         #       all Dash component visualizations are being replaced with D3 soon.
         _type = "html"
         msg = "This visualization is not yet supported in the cloud environment."
-        _log.debug("Visualization type cannot render: {}".format(type(visualization)))
+        _log.debug(f"Visualization type cannot render: {type(visualization)}")
         figure = _build_error_frame(msg)
 
     return {"type": _type, "figure": figure, "help": help}
@@ -96,13 +96,12 @@ def _build_viz_err_obj(err_msg):
     figure = _build_error_frame(err_msg)
     viz_figure = {"type": _type, "figure": figure}
 
-    viz_obj = {
+    return {
         "name": "Error",
         "overall": viz_figure,
         "specific": [],
         "selector": {"columns": [], "data": []},
     }
-    return viz_obj
 
 
 def _build_viz_obj(explanation, detected_envs):
@@ -121,13 +120,12 @@ def _build_viz_obj(explanation, detected_envs):
             "data": explanation.selector.to_dict("records"),
         }
 
-    viz_obj = {
+    return {
         "name": explanation.name,
         "overall": overall,
         "specific": specific,
         "selector": selector_obj,
     }
-    return viz_obj
 
 
 def _build_javascript(viz_obj, id_str=None, default_key=-1, js_url=None):
@@ -249,9 +247,9 @@ def render(explanation, id_str=None, default_key=-1, detected_envs=None, js_url=
         components.html(
             HTML(init_js + body_js).data, height=1000, width=1000, scrolling=True
         )
-    else:  # Fallthrough assumes we are in an IPython environment at a minimum.
-        if not _current_module.jupyter_initialized:
-            _current_module.jupyter_initialized = True
-            display(HTML(init_js + body_js))
-        else:
-            display(HTML(body_js))
+    elif _current_module.jupyter_initialized:
+        display(HTML(body_js))
+
+    else:
+        _current_module.jupyter_initialized = True
+        display(HTML(init_js + body_js))

@@ -18,8 +18,7 @@ def _unique_grid_points(values):
 
 def _percentile_grid_points(values, num_points=10):
     percentiles = np.linspace(0, 100, num=num_points)
-    grid_points = np.percentile(values, percentiles)
-    return grid_points
+    return np.percentile(values, percentiles)
 
 
 # def _equal_spaced_grid_points(values, num_points=10):
@@ -108,7 +107,7 @@ class PartialDependence(ExplainerMixin):
         data, n_samples = preclean_X(data, feature_names, feature_types)
 
         predict_fn, n_classes, _ = determine_classes(model, data, n_samples)
-        if 3 <= n_classes:
+        if n_classes >= 3:
             raise Exception("multiclass PDP not supported")
         predict_fn = unify_predict_fn(predict_fn, data, 1 if n_classes == 2 else -1)
 
@@ -256,7 +255,7 @@ class PDPExplanation(ExplanationMixin):
         feature_name = self.feature_names[key]
         if feature_type == "continuous":
             figure = plot_line(data_dict, title=feature_name)
-        elif feature_type == "nominal" or feature_type == "ordinal":
+        elif feature_type in ["nominal", "ordinal"]:
             figure = plot_bar(data_dict, title=feature_name)
         else:
             raise Exception("Feature type {0} is not supported.".format(feature_type))

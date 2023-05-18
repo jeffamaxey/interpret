@@ -28,21 +28,16 @@ def all_explanations():
     for explainer_class, is_classification in all_explainers:
         # if explainer_class == PermutationImportance:
         #     explainer = explainer_class(binary_model, data["train"]["X"], data["train"]["y"])
-        if explainer_class.explainer_type == "blackbox":
-            if is_classification:
-                explainer = explainer_class(binary_model, data["train"]["X"])
-            else:
-                explainer = explainer_class(regression_model, data["train"]["X"])
-        elif explainer_class.explainer_type == "model":
-            explainer = explainer_class()
-            explainer.fit(data["train"]["X"], data["train"]["y"])
-        elif explainer_class.explainer_type == "specific":
+        if explainer_class.explainer_type in ["blackbox", "specific"]:
             if is_classification:
                 explainer = explainer_class(binary_model, data["train"]["X"])
             else:
                 explainer = explainer_class(regression_model, data["train"]["X"])
         elif explainer_class.explainer_type == "data":
             explainer = explainer_class()
+        elif explainer_class.explainer_type == "model":
+            explainer = explainer_class()
+            explainer.fit(data["train"]["X"], data["train"]["y"])
         elif explainer_class.explainer_type == "perf":
             if is_classification:
                 explainer = explainer_class(binary_model)

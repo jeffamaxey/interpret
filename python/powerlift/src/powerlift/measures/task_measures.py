@@ -39,10 +39,7 @@ def entropy(labels: Iterable, base: Number = None, normalized: bool = False) -> 
     for i in probs:
         ent -= i * log(i, base)
 
-    if normalized:
-        return ent / log(len(value), base)
-    else:
-        return ent
+    return ent / log(len(value), base) if normalized else ent
 
 
 def class_stats(y: pd.Series) -> List[Tuple[str, str, float, bool]]:
@@ -127,7 +124,7 @@ def data_stats(
         avg_prop_special_values += prop_special_values
     avg_prop_special_values /= X.shape[1]
 
-    prop_cat_cols = float(sum([int(x) for x in categorical_mask]))
+    prop_cat_cols = float(sum(int(x) for x in categorical_mask))
     prop_cat_cols /= len(categorical_mask)
 
     return [

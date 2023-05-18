@@ -36,16 +36,16 @@ def boost(
 ):
     episode_index = 0
     with Booster(
-        dataset,
-        bag,
-        init_scores,
-        term_features,
-        n_inner_bags,
-        rng,
-        is_private,
-        objective,
-        experimental_params,
-    ) as booster:
+            dataset,
+            bag,
+            init_scores,
+            term_features,
+            n_inner_bags,
+            rng,
+            is_private,
+            objective,
+            experimental_params,
+        ) as booster:
         # the first round is alwasy cyclic since we need to get the initial gains
         greedy_portion = 0.0
 
@@ -65,7 +65,7 @@ def boost(
                 heap = []
 
             boost_flags_local = boost_flags
-            if 0 < smoothing_rounds:
+            if smoothing_rounds > 0:
                 # modify some of our parameters temporarily
                 boost_flags_local |= (
                     Native.BoostFlags_DisableNewtonGain
@@ -74,7 +74,7 @@ def boost(
                 )
 
             for term_idx in range(len(term_features)):
-                if 1.0 <= greedy_portion:
+                if greedy_portion >= 1.0:
                     # we're being greedy, so select something from our
                     # queue and overwrite the term_idx we'll work on
                     _, term_idx = heapq.heappop(heap)
@@ -145,10 +145,10 @@ def boost(
             else:
                 no_change_run_length += 1
 
-            if 1.0 <= greedy_portion:
+            if greedy_portion >= 1.0:
                 greedy_portion -= 1.0
 
-            if 0 < smoothing_rounds:
+            if smoothing_rounds > 0:
                 # disable early stopping progress during the smoothing rounds since
                 # cuts are chosen randomly, which will lead to high variance on the
                 # validation metric

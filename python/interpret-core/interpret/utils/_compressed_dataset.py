@@ -78,7 +78,7 @@ def bin_native(
     if sample_weight is not None:
         n_bytes += native.measure_weight(sample_weight)
 
-    if 0 <= n_classes:
+    if n_classes >= 0:
         n_bytes += native.measure_classification_target(n_classes, y)
     else:
         n_bytes += native.measure_regression_target(y)
@@ -124,7 +124,7 @@ def bin_native(
     if sample_weight is not None:
         native.fill_weight(sample_weight, dataset)
 
-    if 0 <= n_classes:
+    if n_classes >= 0:
         native.fill_classification_target(n_classes, y, dataset)
     else:
         native.fill_regression_target(y, dataset)

@@ -39,7 +39,7 @@ def _remove_extra_dimensions(arr):
         return np.empty(0, arr.dtype)
 
     shape = [x for x in arr.shape if x != 1]
-    if len(shape) == 0:
+    if not shape:
         shape = (1,)
 
     # reshape returns a view
@@ -89,7 +89,7 @@ def clean_dimensions(data, param_name):
                 data = data.astype(np.object_, copy=False).values
         elif _scipy_installed and isinstance(data, sp.sparse.spmatrix):
             data = data.toarray()
-        elif isinstance(data, list) or isinstance(data, tuple):
+        elif isinstance(data, (list, tuple)):
             data = np.array(data, np.object_)
         elif callable(getattr(data, "__array__", None)):
             data = data.__array__()
@@ -115,7 +115,7 @@ def clean_dimensions(data, param_name):
             return data
 
         if data.dtype.type is not np.object_:
-            if 3 <= data.ndim:
+            if data.ndim >= 3:
                 msg = f"{param_name} cannot have 3rd dimension"
                 _log.error(msg)
                 raise TypeError(msg)
@@ -146,7 +146,7 @@ def clean_dimensions(data, param_name):
                 _log.error(msg)
                 raise TypeError(msg)
             n_second_dim = 1
-            idx = idx + 1
+            idx += 1
             continue
 
         # TODO: if we checked item for various types like numpy, and those types were not of type np.object_
@@ -164,7 +164,7 @@ def clean_dimensions(data, param_name):
                 _log.error(msg)
                 raise TypeError(msg)
             n_second_dim = 1
-            idx = idx + 1
+            idx += 1
             continue
 
         if data is not list:
@@ -184,17 +184,17 @@ def clean_dimensions(data, param_name):
 
         # now check if any of the sub-items are iterable
         sub_idx = 0
-        while sub_idx < n_items:
+        while sub_idx < n_second_dim:
             subitem = item[sub_idx]
 
             if isinstance(subitem, str):
-                sub_idx = sub_idx + 1
+                sub_idx += 1
                 continue
 
             try:
                 subitem = list(subitem)
             except TypeError:
-                sub_idx = sub_idx + 1
+                sub_idx += 1
                 continue
 
             if len(subitem) != 1:
@@ -207,7 +207,7 @@ def clean_dimensions(data, param_name):
 
         # if it was an iterable or we dug into any of the items, we need to replace it
         data[idx] = item
-        idx = idx + 1
+        idx += 1
 
     if n_second_dim == 0:
         return np.empty(0, np.object_)
@@ -221,12 +221,10 @@ def clean_dimensions(data, param_name):
             msg = f"{param_name} cannot contain missing values"
             _log.error(msg)
             raise ValueError(msg)
-    else:
-        # data != data is a check for nan that works even with mixed types, since nan != nan
-        if (data == _none_ndarray).any() or (data != data).any():
-            msg = f"{param_name} cannot contain missing values"
-            _log.error(msg)
-            raise ValueError(msg)
+    elif (data == _none_ndarray).any() or (data != data).any():
+        msg = f"{param_name} cannot contain missing values"
+        _log.error(msg)
+        raise ValueError(msg)
 
     return data
 

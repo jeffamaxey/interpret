@@ -22,10 +22,10 @@ def gen_perf_dicts(scores, y, is_classification, classes=None):
 
     records = []
     for i in range(len(predicted)):
-        di = {}
-        di["is_classification"] = is_classification
-        di["actual"] = np.nan if y is None else y[i]
-
+        di = {
+            "is_classification": is_classification,
+            "actual": np.nan if y is None else y[i],
+        }
         if is_classification:
             di["predicted"] = predicted[i] if classes is None else classes[predicted[i]]
             actual_prob = np.nan
@@ -89,40 +89,33 @@ def gen_global_selector(
     # TODO: we should not use Pandas in a public interface like this
     records = []
     for term_idx in range(len(term_names)):
-        record = {}
-        record["Name"] = term_names[term_idx]
-        # TODO: update the javascript to accept "nominal" or "ordinal" instead of "categorical"
-        record["Type"] = (
-            "categorical"
-            if term_types[term_idx] == "nominal" or term_types[term_idx] == "ordinal"
-            else term_types[term_idx]
-        )
-
+        record = {
+            "Name": term_names[term_idx],
+            "Type": "categorical"
+            if term_types[term_idx] in ["nominal", "ordinal"]
+            else term_types[term_idx],
+        }
         if term_idx < n_features:
             record["# Unique"] = (
                 np.nan if unique_val_counts is None else unique_val_counts[term_idx]
             )
-            # TODO: remove this.. we don't seem to use it
-            record["% Non-zero"] = np.nan
-
-            # if importance_scores is None:
-            #     record["Importance"] = np.nan
-            # else:
-            #     record["Importance"] = importance_scores[term_idx]
+                    # if importance_scores is None:
+                    #     record["Importance"] = np.nan
+                    # else:
+                    #     record["Importance"] = importance_scores[term_idx]
         else:
             record["# Unique"] = np.nan
-            record["% Non-zero"] = np.nan
-            # record["Importance"] = np.nan
+                    # record["Importance"] = np.nan
+
+        # TODO: remove this.. we don't seem to use it
+        record["% Non-zero"] = np.nan
 
         records.append(record)
 
     # columns = ["Name", "Type", "# Unique", "% Non-zero", "Importance"]
     columns = ["Name", "Type", "# Unique", "% Non-zero"]
     df = pd.DataFrame.from_records(records, columns=columns)
-    if round is not None:
-        return df.round(round)
-    else:  # pragma: no cover
-        return df
+    return df.round(round) if round is not None else df
 
 
 def gen_local_selector(data_dicts, round=3, is_classification=True):
@@ -130,13 +123,12 @@ def gen_local_selector(data_dicts, round=3, is_classification=True):
 
     for data_dict in data_dicts:
         perf_dict = data_dict["perf"]
-        record = {}
-        record["PrScore"] = perf_dict["predicted_score"]
-        record["AcScore"] = perf_dict["actual_score"]
-
-        record["Predicted"] = perf_dict["predicted"]
-        record["Actual"] = perf_dict["actual"]
-
+        record = {
+            "PrScore": perf_dict["predicted_score"],
+            "AcScore": perf_dict["actual_score"],
+            "Predicted": perf_dict["predicted"],
+            "Actual": perf_dict["actual"],
+        }
         record["Resid"] = record["AcScore"] - record["PrScore"]
         record["AbsResid"] = abs(record["Resid"])
 
@@ -148,10 +140,7 @@ def gen_local_selector(data_dicts, round=3, is_classification=True):
         columns = ["Actual", "Predicted", "Resid", "AbsResid"]
 
     df = pd.DataFrame.from_records(records, columns=columns)
-    if round is not None:
-        return df.round(round)
-    else:  # pragma: no cover
-        return df
+    return df.round(round) if round is not None else df
 
 
 def gen_name_from_class(obj):
@@ -169,7 +158,7 @@ def gen_name_from_class(obj):
         gen_name_from_class.cache[class_name] = count()
     identifier = next(gen_name_from_class.cache[class_name])
 
-    return str(obj.__class__.__name__) + "_" + str(identifier)
+    return f"{str(obj.__class__.__name__)}_{str(identifier)}"
 
 
 gen_name_from_class.cache = {}

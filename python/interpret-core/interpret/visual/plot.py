@@ -68,7 +68,7 @@ def plot_performance_curve(
     )
 
     main_fig = go.Figure(data=data, layout=layout)
-    title += "<br>" + auc_str
+    title += f"<br>{auc_str}"
 
     # TODO: Remove this if threshold lines are never used.
     # # Add treshold line
@@ -172,7 +172,7 @@ def plot_continuous_bar(
         )
         data = [lower_bound, main_line, upper_bound]
 
-    show_legend = True if multiclass or not show_error else False
+    show_legend = bool(multiclass or not show_error)
     layout = go.Layout(
         title=title,
         showlegend=show_legend,
@@ -218,10 +218,7 @@ def _human_format(num):
 # TODO: Clean this up after validation.
 # def _pretty_number(x, rounding=2):
 def _pretty_number(x):
-    if isinstance(x, str):
-        return x
-    # return round(x, rounding)
-    return _human_format(x)
+    return x if isinstance(x, str) else _human_format(x)
 
 
 # TODO: Remove this completely once performance graphs are hardened.
@@ -245,7 +242,6 @@ def plot_density(
 ):
     counts = data_dict["scores"]
     edges = data_dict["names"]
-    data = []
     if not is_categorical:
         x_text = []
         for indx in range(len(edges) - 1):
@@ -258,7 +254,7 @@ def plot_density(
         x_vals = edges
         x_text = edges
 
-    data.append(
+    data = [
         go.Bar(
             x=x_vals,
             y=counts,
@@ -267,7 +263,7 @@ def plot_density(
             name=name,
             marker=dict(color=color),
         )
-    )
+    ]
     layout = go.Layout(
         title=title,
         showlegend=False,
@@ -282,8 +278,7 @@ def plot_density(
             tickvals=x_vals,
             ticktext=x_text,
         )
-    bar_fig = go.Figure(data, layout)
-    return bar_fig
+    return go.Figure(data, layout)
 
 
 def _plot_with_density(
@@ -356,11 +351,7 @@ def plot_line(
     error_present = y_hi is not None
     background_present = background_lines is not None
 
-    data = []
-    fill = "none"
-    if error_present:
-        fill = "tonexty"
-
+    fill = "tonexty" if error_present else "none"
     main_line = go.Scatter(
         x=x_vals,
         y=y_vals,
@@ -370,21 +361,20 @@ def plot_line(
         fillcolor="rgba(68, 68, 68, 0.15)",
         fill=fill,
     )
-    data.append(main_line)
-
+    data = [main_line]
     if background_present:
-        for i in range(background_lines.shape[0]):
-            data.append(
-                go.Scatter(
-                    x=x_vals,
-                    y=background_lines[i, :],
-                    mode="lines",
-                    opacity=0.3,
-                    line=dict(width=1.5),
-                    name="Background: " + str(i + 1),
-                    connectgaps=True,
-                )
+        data.extend(
+            go.Scatter(
+                x=x_vals,
+                y=background_lines[i, :],
+                mode="lines",
+                opacity=0.3,
+                line=dict(width=1.5),
+                name=f"Background: {str(i + 1)}",
+                connectgaps=True,
             )
+            for i in range(background_lines.shape[0])
+        )
     elif error_present:
         upper_bound = go.Scatter(
             name="Upper Bound",
@@ -414,13 +404,11 @@ def plot_line(
     )
     main_fig = go.Figure(data, layout)
 
-    # Add density
-    if data_dict.get("density", None) is not None:
-        figure = _plot_with_density(data_dict["density"], main_fig, title=title)
-    else:
-        figure = main_fig
-
-    return figure
+    return (
+        _plot_with_density(data_dict["density"], main_fig, title=title)
+        if data_dict.get("density", None) is not None
+        else main_fig
+    )
 
 
 def plot_bar(data_dict, title="", xtitle="", ytitle=""):
@@ -429,16 +417,13 @@ def plot_bar(data_dict, title="", xtitle="", ytitle=""):
     x = data_dict["names"].copy()
     y = data_dict["scores"].copy()
     y_upper_err = data_dict.get("upper_bounds", None)
-    if y_upper_err is not None:
-        y_err = y_upper_err - y
-    else:
-        y_err = None
+    y_err = y_upper_err - y if y_upper_err is not None else None
     multiclass = isinstance(y, np.ndarray) and y.ndim == 2
     traces = []
     if multiclass:
         for i in range(y.shape[1]):
             class_name = (
-                "Class {}".format(i)
+                f"Class {i}"
                 if "meta" not in data_dict
                 else data_dict["meta"]["label_names"][i]
             )
@@ -471,9 +456,8 @@ def plot_bar(data_dict, title="", xtitle="", ytitle=""):
     if multiclass:
         main_fig.update_layout(barmode="group")
 
-    # Add density
-    if data_dict.get("density", None) is not None:
-        figure = _plot_with_density(
+    return (
+        _plot_with_density(
             data_dict["density"],
             main_fig,
             title=title,
@@ -481,9 +465,9 @@ def plot_bar(data_dict, title="", xtitle="", ytitle=""):
             yrange=yrange,
             showlegend=multiclass,
         )
-    else:
-        figure = main_fig
-    return figure
+        if data_dict.get("density", None) is not None
+        else main_fig
+    )
 
 
 def _names_with_values(names, values):
@@ -533,16 +517,16 @@ def plot_horizontal_bar(
             title_str += f"Predicted Class: {predicted}"
             title_str += f"<br />Pr(y = {predicted}): {predicted_score:.3f}"
 
-            if not np.isnan(actual) and len(set([predicted, actual])) == 2:
+            if not np.isnan(actual) and len({predicted, actual}) == 2:
                 title_str += f" | Pr(y = {actual}): {actual_score:.3f}"
             title_items.append(title_str)
         else:  # Regression titles
             if not np.isnan(actual):
                 actual_score = _pretty_number(actual_score)
-                title_items.append("Actual: {}".format(actual_score))
+                title_items.append(f"Actual: {actual_score}")
 
             predicted_score = _pretty_number(predicted_score)
-            title_items.append("Predicted: {}".format(predicted_score))
+            title_items.append(f"Predicted: {predicted_score}")
 
         title = " | ".join(title_items)
     if not multiclass:
@@ -586,8 +570,7 @@ def plot_horizontal_bar(
     )
     if multiclass:
         layout["barmode"] = "relative"
-    figure = go.Figure(data=traces, layout=layout)
-    return figure
+    return go.Figure(data=traces, layout=layout)
 
 
 def mli_plot_horizontal_bar(
@@ -606,9 +589,10 @@ def mli_plot_horizontal_bar(
 
     # title = "🔴 🔵<br>Predicted {0:.2f} | Actual {1:.2f}".format(
     if perf is not None and title == "":
-        title_items = []
-        title_items.append("Predicted {0:.2f}".format(perf["predicted"]))
-        title_items.append("Actual {0:.2f}".format(perf["actual"]))
+        title_items = [
+            "Predicted {0:.2f}".format(perf["predicted"]),
+            "Actual {0:.2f}".format(perf["actual"]),
+        ]
         title = " | ".join(title_items)
 
     color = [COLORS[0] if value <= 0 else COLORS[1] for value in scores]
@@ -634,9 +618,7 @@ def mli_plot_horizontal_bar(
         xaxis=dict(range=x_range, title=xtitle),
     )
 
-    figure = go.Figure(data=[trace], layout=layout)
-
-    return figure
+    return go.Figure(data=[trace], layout=layout)
 
 
 def plot_pairwise_heatmap(data_dict, title="", xtitle="", ytitle=""):
@@ -655,9 +637,7 @@ def plot_pairwise_heatmap(data_dict, title="", xtitle="", ytitle=""):
         heatmap["zmax"] = data_dict["scores_range"][1]
 
     layout = go.Layout(title=title, xaxis=dict(title=xtitle), yaxis=dict(title=ytitle))
-    figure = go.Figure(data=[heatmap], layout=layout)
-
-    return figure
+    return go.Figure(data=[heatmap], layout=layout)
 
 
 def sort_take(
@@ -705,14 +685,13 @@ def get_sort_indexes_2d(data, sort_fn=None, top_n=None):
     if top_n is None:
         top_n = len(data[0])
 
-    if sort_fn is not None:
-        out_list = []
-        for data_instance in data:
-            sorted_vals = list(map(sort_fn, data_instance))
-            out_list.append(np.argsort(sorted_vals)[:top_n])
-        return out_list
-    else:
+    if sort_fn is None:
         return np.arange(top_n)
+    out_list = []
+    for data_instance in data:
+        sorted_vals = list(map(sort_fn, data_instance))
+        out_list.append(np.argsort(sorted_vals)[:top_n])
+    return out_list
 
 
 def mli_sort_take(data, sort_indexes, reverse_results=False):
@@ -731,10 +710,14 @@ def mli_sort_take(data, sort_indexes, reverse_results=False):
 
 
 def get_explanation_index(explanation_list, explanation_type):
-    for i, explanation in enumerate(explanation_list):
-        if explanation["explanation_type"] == explanation_type:
-            return i
-    return None
+    return next(
+        (
+            i
+            for i, explanation in enumerate(explanation_list)
+            if explanation["explanation_type"] == explanation_type
+        ),
+        None,
+    )
 
 
 # TODO: Remove from code coverage until skope rules is updated upstream to work with latest scikit-learn.
@@ -791,18 +774,17 @@ def rules_to_html(data_dict, title=""):  # pragma: no cover
             rule=rule_str, outcome=outcome, prec=precision, recall=recall
         )
         template_list.append(template_item)
-    if len(template_list) != 0:
+    if template_list:
         rule_final = " ".join(template_list)
     else:  # pragma: no cover
         rule_final = "<h2>No rules found.</h2>"
 
-    html_str = multi_html_template.format(title=title, rules=rule_final)
-    return html_str
+    return multi_html_template.format(title=title, rules=rule_final)
 
 
 def plot_ebm_multiple_booleans(
     feat_names, ebm_global, mpl_style=False, figname=None
-):  # pragma: no cover
+):    # pragma: no cover
     """
     Helper function to plot the effect sizes of many Boolean features on the same figure.
     Args:
@@ -824,7 +806,7 @@ def plot_ebm_multiple_booleans(
         if feat_name in feat_names:
             my_data = ebm_global.data(i)
             if len(my_data["scores"]) == 2:
-                my_name = "{} ({})".format(feat_name, my_data["density"]["scores"][1])
+                my_name = f'{feat_name} ({my_data["density"]["scores"][1]})'
                 names.append(my_name)
                 impacts.append(my_data["scores"][1] - my_data["scores"][0])
                 upper_bounds.append(
@@ -836,11 +818,7 @@ def plot_ebm_multiple_booleans(
                 densities.append(my_data["density"]["scores"][1])
                 counter += 1
             else:
-                print(
-                    "Feature: {} is not observed as a Boolean variable.".format(
-                        feat_name
-                    )
-                )
+                print(f"Feature: {feat_name} is not observed as a Boolean variable.")
     if mpl_style:
         _ = plt.figure(figsize=(12, 12))
         sorted_i = np.argsort(impacts)

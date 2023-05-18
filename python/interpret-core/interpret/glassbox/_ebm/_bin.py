@@ -29,7 +29,7 @@ def eval_terms(X, n_samples, feature_names_in, feature_types_in, bins, term_feat
     _log.info("eval_terms")
 
     requests = []
-    waiting = dict()
+    waiting = {}
     for term_idx, feature_idxs in enumerate(term_features):
         # the first len(feature_idxs) items hold the binned data that we get back as it arrives
         requirements = _none_list * (len(feature_idxs) + 1)
@@ -102,12 +102,6 @@ def eval_terms(X, n_samples, feature_names_in, feature_types_in, bins, term_feat
                         # clear references so that the garbage collector can free them
                         requirements.clear()
         else:
-            # categorical feature
-
-            if bad is not None:
-                # TODO: we could pass out a single bool (not an array) if these aren't continuous convertible
-                pass  # TODO: improve this handling
-
             for requirements in waiting[(column_feature_idx, id(column_categories))]:
                 if len(requirements) != 0:
                     term_idx = requirements[-1]
@@ -146,7 +140,7 @@ def ebm_decision_function(
             (n_samples, len(intercept)), intercept, dtype=np.float64
         )
 
-    if 0 < n_samples:
+    if n_samples > 0:
         for term_idx, bin_indexes in eval_terms(
             X, n_samples, feature_names_in, feature_types_in, bins, term_features
         ):
@@ -181,7 +175,7 @@ def ebm_decision_function_and_explain(
             (n_samples, len(term_features), len(intercept)), dtype=np.float64
         )
 
-    if 0 < n_samples:
+    if n_samples > 0:
         for term_idx, bin_indexes in eval_terms(
             X, n_samples, feature_names_in, feature_types_in, bins, term_features
         ):

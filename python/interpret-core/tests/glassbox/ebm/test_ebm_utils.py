@@ -112,16 +112,16 @@ def test_make_bag_classification():
         ideal_training_count = ideal_training * class_counts[label]
         ideal_val_count = ideal_val * class_counts[label]
 
-        assert (
-            train_class_counts[label] == ceil(ideal_training_count)
-            or train_class_counts[label] == floor(ideal_training_count)
-            or train_class_counts[label] == ideal_training_count
-        )
-        assert (
-            val_class_counts[label] == ceil(ideal_val_count)
-            or val_class_counts[label] == floor(ideal_val_count)
-            or val_class_counts[label] == ideal_val_count
-        )
+        assert train_class_counts[label] in [
+            ceil(ideal_training_count),
+            floor(ideal_training_count),
+            ideal_training_count,
+        ]
+        assert val_class_counts[label] in [
+            ceil(ideal_val_count),
+            floor(ideal_val_count),
+            ideal_val_count,
+        ]
 
 
 def test_convert_categorical_to_continuous_easy():

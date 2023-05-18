@@ -52,6 +52,6 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "interpret-core[{}]=={}".format(",".join(interpret_core_extra), version)
+        f'interpret-core[{",".join(interpret_core_extra)}]=={version}'
     ],
 )

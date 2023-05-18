@@ -38,10 +38,8 @@ class Explanation(S):
 
     def __repr__(self):
         record = self.components.copy()
-        fields = []
         shape_str = f"shape: {self.shape}"
-        fields.append(shape_str)
-        fields.append("-" * len(shape_str))
+        fields = [shape_str, "-" * len(shape_str)]
         for record_key, record_val in record.items():
             for field_name, field_val in record_val.fields.items():
                 field_value = str(self.__getattr__(field_name))
@@ -58,19 +56,16 @@ class Explanation(S):
                     field_value_str = f"{field_type}{{{field_dim}}}\t{field_name} = {field_value}"
 
                 if len(field_value_str) > 60:
-                    field_value_str = field_value_str[:57] + "..."
+                    field_value_str = f"{field_value_str[:57]}..."
                 fields.append(field_value_str)
-        fields = "\n".join(fields)
-
-        return fields
+        return "\n".join(fields)
 
     @classmethod
     def from_json(cls, json_str):
         from interpret.newapi.serialization import ExplanationJSONDecoder
 
         d = json.loads(json_str, cls=ExplanationJSONDecoder)
-        instance = d["content"]
-        return instance
+        return d["content"]
 
     @classmethod
     def from_components(cls, components):

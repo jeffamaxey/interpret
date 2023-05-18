@@ -228,9 +228,7 @@ class ROCExplanation(ExplanationMixin):
             A serializable dictionary.
         """
 
-        if key is None:
-            return self._internal_obj["overall"]
-        return None
+        return self._internal_obj["overall"] if key is None else None
 
     def visualize(self, key=None):
         """Provides interactive visualizations.
@@ -254,7 +252,7 @@ class ROCExplanation(ExplanationMixin):
             xtitle="FPR",
             ytitle="TPR",
             baseline=True,
-            title="ROC Curve: " + self.name,
+            title=f"ROC Curve: {self.name}",
             auc_prefix="AUC",
         )
 
@@ -299,9 +297,7 @@ class PRExplanation(ExplanationMixin):
         Returns:
             A serializable dictionary.
         """
-        if key is None:
-            return self._internal_obj["overall"]
-        return None
+        return self._internal_obj["overall"] if key is None else None
 
     def visualize(self, key=None):
         """Provides interactive visualizations.
@@ -325,6 +321,6 @@ class PRExplanation(ExplanationMixin):
             xtitle="Recall",
             ytitle="Precision",
             baseline=False,
-            title="PR Curve: " + self.name,
+            title=f"PR Curve: {self.name}",
             auc_prefix="Average Precision",
         )

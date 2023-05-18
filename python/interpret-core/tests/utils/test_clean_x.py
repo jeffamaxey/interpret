@@ -979,7 +979,7 @@ def test_encode_categorical_existing_obj_bool():
 def test_encode_categorical_existing_obj_int_small():
     c = {"-2": 1, "3": 2, "1": 3}
     encoded, bad = _encode_categorical_existing(
-        np.array([int(1), np.int8(-2), np.uint64(3)], dtype=np.object_), None, c
+        np.array([1, np.int8(-2), np.uint64(3)], dtype=np.object_), None, c
     )
     assert bad is None
     assert np.array_equal(encoded, np.array([c["1"], c["-2"], c["3"]], dtype=np.int64))
@@ -989,7 +989,8 @@ def test_encode_categorical_existing_obj_int_big():
     c = {"-2": 1, "18446744073709551615": 2, "1": 3}
     encoded, bad = _encode_categorical_existing(
         np.array(
-            [int(1), np.int8(-2), np.uint64("18446744073709551615")], dtype=np.object_
+            [1, np.int8(-2), np.uint64("18446744073709551615")],
+            dtype=np.object_,
         ),
         None,
         c,
@@ -1012,7 +1013,7 @@ def test_encode_categorical_existing_obj_floats():
     encoded, bad = _encode_categorical_existing(
         np.array(
             [
-                float(1.1),
+                1.1,
                 np.float16(2.2),
                 np.float32(3.3),
                 np.float64(4.4),
@@ -1036,7 +1037,7 @@ def test_encode_categorical_existing_obj_floats():
 def test_encode_categorical_existing_obj_str_int():
     c = {"abc": 1, "1": 2}
     encoded, bad = _encode_categorical_existing(
-        np.array(["abc", int(1)], dtype=np.object_), None, c
+        np.array(["abc", 1], dtype=np.object_), None, c
     )
     assert bad is None
     assert np.array_equal(encoded, np.array([c["abc"], c["1"]], dtype=np.int64))
@@ -1045,7 +1046,7 @@ def test_encode_categorical_existing_obj_str_int():
 def test_encode_categorical_existing_obj_str_float():
     c = {"abc": 1, "1.1": 2}
     encoded, bad = _encode_categorical_existing(
-        np.array(["abc", float(1.1)], dtype=np.object_), None, c
+        np.array(["abc", 1.1], dtype=np.object_), None, c
     )
     assert bad is None
     assert np.array_equal(encoded, np.array([c["abc"], c["1.1"]], dtype=np.int64))
@@ -1075,7 +1076,7 @@ def test_encode_categorical_existing_int_float():
     # this test is hard since np.unique seems to think int(4) == float(4) so naively it returns just "4"
     c = {"4": 1, "4.0": 2}
     encoded, bad = _encode_categorical_existing(
-        np.array([int(4), 4.0], dtype=np.object_), None, c
+        np.array([4, 4.0], dtype=np.object_), None, c
     )
     assert bad is None
     assert np.array_equal(encoded, np.array([c["4"], c["4.0"]], dtype=np.int64))
@@ -1090,7 +1091,7 @@ def test_encode_categorical_existing_int_float32():
     # serialize them to the same string.  The our model has ["0.1", "0.1"] as the categories!!
     c = {"4": 1, "0.10000000149011612": 2}
     encoded, bad = _encode_categorical_existing(
-        np.array([int(4), np.float32(0.1)], dtype=np.object_), None, c
+        np.array([4, np.float32(0.1)], dtype=np.object_), None, c
     )
     assert bad is None
     assert np.array_equal(
@@ -1422,7 +1423,7 @@ def test_unify_columns_list2():
         {"abc": 1, "def": 2, "ghi": 3}.keys(),
         {"abc": 1, "def": 2, "ghi": 3}.values(),
         range(1, 4),
-        (x for x in [1, 2, 3]),
+        iter([1, 2, 3]),
         np.array([1, 2, 3], dtype=np.object_),
         np.array([[1, 2, 3]], dtype=np.int8),
         np.array([[1], [2], [3]], dtype=np.int8),
@@ -1559,7 +1560,7 @@ def test_unify_columns_tuple2():
         {"abc": 1, "def": 2, "ghi": 3}.keys(),
         {"abc": 1, "def": 2, "ghi": 3}.values(),
         range(1, 4),
-        (x for x in [1, 2, 3]),
+        iter([1, 2, 3]),
         np.array([1, 2, 3], dtype=np.object_),
     )
     X, n_samples = preclean_X(X, None, None)
@@ -1638,7 +1639,7 @@ def test_unify_columns_tuple2():
 
 
 def test_unify_columns_generator1():
-    X = (x for x in [1, 2.0, "hi", None])
+    X = iter([1, 2.0, "hi", None])
     X, n_samples = preclean_X(X, None, None, 1)
     assert n_samples == 1
     feature_names_in = unify_feature_names(X)
@@ -1663,9 +1664,8 @@ def test_unify_columns_generator1():
 
 
 def test_unify_columns_generator2():
-    X = (
-        x
-        for x in [
+    X = iter(
+        [
             np.array([1, 2, 3], dtype=np.int8),
             pd.Series([4, 5, 6]),
             [1, 2.0, "hi"],
@@ -1674,7 +1674,7 @@ def test_unify_columns_generator2():
             {"abc": 1, "def": 2, "ghi": 3}.keys(),
             {"abc": 1, "def": 2, "ghi": 3}.values(),
             range(1, 4),
-            (x for x in [1, 2, 3]),
+            iter([1, 2, 3]),
             np.array([1, 2, 3], dtype=np.object_),
         ]
     )
@@ -1984,7 +1984,7 @@ def test_unify_columns_range_throw():
 
 
 def test_unify_columns_generator_throw():
-    check_numpy_throws(np.object_, (x for x in [1, 2]), "def")
+    check_numpy_throws(np.object_, iter([1, 2]), "def")
 
 
 def test_unify_columns_ndarray_throw():
@@ -2012,7 +2012,7 @@ def test_unify_columns_pandas_obj_to_float():
         dtype=np.object_,
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 10
@@ -2065,7 +2065,7 @@ def test_unify_columns_pandas_obj_to_str():
         dtype=np.object_,
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 12
@@ -2114,7 +2114,7 @@ def test_unify_columns_pandas_categorical():
         dtype=pd.CategoricalDtype(categories=["a", "0", "bcd"], ordered=False),
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6
@@ -2149,7 +2149,7 @@ def test_unify_columns_pandas_ordinal():
         dtype=pd.CategoricalDtype(categories=["a", "0", "bcd"], ordered=True),
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6
@@ -2184,7 +2184,7 @@ def test_unify_columns_pandas_categorical_shorter():
         dtype=pd.CategoricalDtype(categories=["a", "0"], ordered=False),
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 5
@@ -2208,7 +2208,7 @@ def test_unify_columns_pandas_categorical_equals():
         dtype=pd.CategoricalDtype(categories=["a", "0", "bcd"], ordered=False),
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6
@@ -2234,7 +2234,7 @@ def test_unify_columns_pandas_categorical_longer():
         ),
     )
     na = X["feature1"].isna()
-    assert all(na[0:2])
+    assert all(na[:2])
     assert all(~na[2:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6
@@ -2261,7 +2261,7 @@ def test_unify_columns_pandas_categorical_reordered_shorter():
         dtype=pd.CategoricalDtype(categories=["0", "a"], ordered=False),
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 5
@@ -2285,7 +2285,7 @@ def test_unify_columns_pandas_categorical_reordered_equals():
         dtype=pd.CategoricalDtype(categories=["a", "bcd", "0"], ordered=False),
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6
@@ -2311,7 +2311,7 @@ def test_unify_columns_pandas_categorical_reordered_longer1():
         ),
     )
     na = X["feature1"].isna()
-    assert all(na[0:2])
+    assert all(na[:2])
     assert all(~na[2:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6
@@ -2340,7 +2340,7 @@ def test_unify_columns_pandas_categorical_reordered_longer2():
         ),
     )
     na = X["feature1"].isna()
-    assert all(na[0:2])
+    assert all(na[:2])
     assert all(~na[2:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6
@@ -2367,7 +2367,7 @@ def test_unify_columns_pandas_categorical_compressed_categories():
         dtype=pd.CategoricalDtype(categories=["a", "bcd", "0"], ordered=False),
     )
     na = X["feature1"].isna()
-    assert all(na[0:3])
+    assert all(na[:3])
     assert all(~na[3:])
     X, n_samples = preclean_X(X, None, None)
     assert n_samples == 6

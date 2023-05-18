@@ -87,7 +87,7 @@ class LimeTabular(ExplainerMixin):
         )
 
         predict_fn, n_classes, classes = determine_classes(self.model, X, n_samples)
-        if 3 <= n_classes:
+        if n_classes >= 3:
             raise Exception("multiclass LIME not supported")
         predict_fn = unify_predict_fn(predict_fn, X, 1 if n_classes == 2 else -1)
 
@@ -100,7 +100,7 @@ class LimeTabular(ExplainerMixin):
         X = X.astype(np.float64, order="C", copy=False)
 
         if y is not None:
-            if 0 <= n_classes:
+            if n_classes >= 0:
                 y = typify_classification(y)
             else:
                 y = y.astype(np.float64, copy=False)

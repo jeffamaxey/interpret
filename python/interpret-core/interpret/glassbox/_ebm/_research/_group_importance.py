@@ -42,12 +42,12 @@ def compute_group_importance(term_list, ebm, X, contributions=None):
         else:
             raise ValueError(f"Term '{term}' is not a string or a valid integer.")
 
-    if len(term_group_indices) == 0:
+    if not term_group_indices:
         raise ValueError("term_list does not contain any valid terms.")
 
     # For multiclass we take the average of contributions per class
     # TODO this is consistent to what Interpret is doing but might be changed
-    if is_classifier(ebm) and 2 < len(ebm.classes_):
+    if is_classifier(ebm) and len(ebm.classes_) > 2:
         contributions = np.average(np.abs(contributions), axis=-1)
 
     abs_sum_per_row = np.empty(len(contributions), np.float64)
@@ -113,21 +113,20 @@ def append_group_importance(
     """
     check_is_fitted(ebm, "has_fitted_")
 
-    if global_exp is not None:
-        if global_exp.explanation_type != "global":
-            raise ValueError(
-                f"The provided explanation is {global_exp.explanation_type} but a global explanation is expected."
-            )
-        elif (
-            global_exp._internal_obj is None
-            or global_exp._internal_obj["overall"] is None
-        ):
-            raise ValueError("The global explanation object is incomplete.")
-        else:
-            global_explanation = global_exp
-    else:
+    if global_exp is None:
         global_explanation = ebm.explain_global(global_exp_name)
 
+    elif global_exp.explanation_type != "global":
+        raise ValueError(
+            f"The provided explanation is {global_exp.explanation_type} but a global explanation is expected."
+        )
+    elif (
+        global_exp._internal_obj is None
+        or global_exp._internal_obj["overall"] is None
+    ):
+        raise ValueError("The global explanation object is incomplete.")
+    else:
+        global_explanation = global_exp
     if group_name is None:
         group_name = _get_group_name(term_list, ebm.term_names_)
 
@@ -168,11 +167,10 @@ def get_group_and_individual_importances(term_groups_list, ebm, X, contributions
     if contributions is None:
         _, contributions = ebm.predict_and_contrib(X)
 
-    dict = {}
-
-    for term in ebm.term_names_:
-        dict[term] = compute_group_importance([term], ebm, X, contributions)
-
+    dict = {
+        term: compute_group_importance([term], ebm, X, contributions)
+        for term in ebm.term_names_
+    }
     # If it's not a list of lists, we assume it's only one term group (e.g. list of strings or ints)
     if type(term_groups_list[0]) is not list:
         group_name = _get_group_name(term_groups_list, ebm.term_names_)
@@ -186,10 +184,7 @@ def get_group_and_individual_importances(term_groups_list, ebm, X, contributions
                 term_group, ebm, X, contributions
             )
 
-    sorted_dict = {
-        k: v for k, v in sorted(dict.items(), key=lambda item: item[1], reverse=True)
-    }
-    return sorted_dict
+    return dict(sorted(dict.items(), key=lambda item: item[1], reverse=True))
 
 
 def get_individual_importances(ebm, X, contributions=None):
@@ -208,14 +203,11 @@ def get_individual_importances(ebm, X, contributions=None):
     if contributions is None:
         _, contributions = ebm.predict_and_contrib(X)
 
-    dict = {}
-    for term in ebm.term_names_:
-        dict[term] = compute_group_importance([term], ebm, X, contributions)
-
-    sorted_dict = {
-        k: v for k, v in sorted(dict.items(), key=lambda item: item[1], reverse=True)
+    dict = {
+        term: compute_group_importance([term], ebm, X, contributions)
+        for term in ebm.term_names_
     }
-    return sorted_dict
+    return dict(sorted(dict.items(), key=lambda item: item[1], reverse=True))
 
 
 def get_importance_per_top_groups(ebm, X):
@@ -248,23 +240,17 @@ def get_importance_per_top_groups(ebm, X):
         temp_group.append(key)
         groups_list.append(temp_group)
 
-    # Compute the importance of each group in groups_list
-    group_index = 1
     output_dict = {}
-    for group in groups_list:
+    for group_index, group in enumerate(groups_list, start=1):
         group_name = f"Group {group_index}"
         output_dict[group_name] = compute_group_importance(group, ebm, X, contributions)
-        group_index += 1
-
-    df = pd.DataFrame(
+    return pd.DataFrame(
         {
             "groups": output_dict.keys(),
             "terms_per_group": groups_list,
             "importances": output_dict.values(),
         }
     )
-
-    return df
 
 
 def plot_importance_per_top_groups(ebm, X):

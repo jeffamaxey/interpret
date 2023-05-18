@@ -30,10 +30,7 @@ app.logger.disabled = True
 
 
 def _build_path(path, base_url=None):
-    if base_url:
-        return "{0}/{1}".format(base_url, path)
-    else:
-        return path
+    return "{0}/{1}".format(base_url, path) if base_url else path
 
 
 class AppRunner:
@@ -132,7 +129,7 @@ class AppRunner:
             _log.error(e, exc_info=True)
 
     def _obj_id(self, obj):
-        return str(id(obj))
+        return id(obj)
 
     def start(self):
         _log.info("Running app runner on: {0}:{1}".format(self.ip, self.port))
@@ -154,12 +151,12 @@ class AppRunner:
             return False
 
     def status(self):
-        status_dict = {}
-        status_dict["addr"] = self.ip, self.port
-        status_dict["base_url"] = self.base_url
-        status_dict["use_relative_links"] = self.use_relative_links
-        status_dict["thread_alive"] = self._thread.is_alive() if self._thread else False
-
+        status_dict = {
+            "addr": (self.ip, self.port),
+            "base_url": self.base_url,
+            "use_relative_links": self.use_relative_links,
+            "thread_alive": self._thread.is_alive() if self._thread else False,
+        }
         http_reachable = self.ping()
         status_dict["http_reachable"] = http_reachable
 
@@ -170,7 +167,7 @@ class AppRunner:
         self.app.register(ctx, **kwargs)
 
     def display_link(self, ctx):
-        obj_path = self._obj_id(ctx) + "/"
+        obj_path = f"{self._obj_id(ctx)}/"
         path = (
             obj_path
             if self.base_url is None
@@ -227,7 +224,7 @@ class DispatcherApp:
             )
 
     def obj_id(self, obj):
-        return str(id(obj))
+        return id(obj)
 
     def register(self, ctx, share_tables=None):
         ctx_id = self.obj_id(ctx)
@@ -280,13 +277,13 @@ class DispatcherApp:
                     return [handler.read()]
 
             match = re.search(self.app_pattern, path_info)
-            if match is None or self.pool.get(match.group(1), None) is None:
+            if match is None or self.pool.get(match[1], None) is None:
                 msg = "URL not supported: {0}".format(path_info)
                 _log.error(msg)
                 start_response("400 BAD REQUEST ERROR", [("content-type", "text/html")])
                 return [msg.encode("utf-8")]
 
-            ctx_id = match.group(1)
+            ctx_id = match[1]
             _log.info("Routing request: {0}".format(ctx_id))
             app = self.pool[ctx_id]
             if self.base_url and not environ["PATH_INFO"].startswith(
@@ -429,5 +426,4 @@ body {
                 ]
             )
 
-        content = Template(body).substitute(list=items)
-        return content
+        return Template(body).substitute(list=items)
