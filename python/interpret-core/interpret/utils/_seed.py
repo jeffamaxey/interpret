@@ -25,7 +25,7 @@ def normalize_initial_seed(seed):
 
     if seed is None:
         return None  # non-deterministic random numbers
-    if 2147483647 < seed:
+    if seed > 2147483647:
         # we'd like to modulo by 2147483648 but that is not a legal 32-bit signed int
         # if the user provides 2147483647 exactly then we use it, but otherwise our range is restricted
         # add one to prevent generating 0 because we generate 0 for the negative multiples of -2147483648
@@ -42,6 +42,4 @@ def increment_seed(seed):
     # we can increment the seed instead of generating a random and human-unpredictable seed
     if seed is None:
         return None
-    if seed == 2147483647:
-        return -2147483648
-    return seed + 1
+    return -2147483648 if seed == 2147483647 else seed + 1

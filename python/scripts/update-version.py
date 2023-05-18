@@ -9,7 +9,7 @@ import os
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
-        print("{} old-version new-version".format(sys.argv[0]))
+        print(f"{sys.argv[0]} old-version new-version")
         sys.exit(1)
 
     old_version = sys.argv[1]
@@ -39,7 +39,7 @@ if __name__ == '__main__':
                 new_line = re.sub(find, replace, line)
                 new_lines.append(new_line)
             if not matched:
-                print("Did not match: {}".format(find), file=sys.stderr)
+                print(f"Did not match: {find}", file=sys.stderr)
 
         if matched:
             with open(target_path, 'w') as f:

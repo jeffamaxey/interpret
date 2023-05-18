@@ -183,9 +183,7 @@ class DecisionListClassifier(ClassifierMixin, ExplainerMixin):
             _BASE_FEATURE_NAME + x
             for x in np.arange(len(self.feature_names_in_)).astype(str)
         ]
-        self.feature_map_ = {
-            key: name for key, name in zip(self.feature_index_, self.feature_names_in_)
-        }
+        self.feature_map_ = dict(zip(self.feature_index_, self.feature_names_in_))
         self.sk_model_ = SR(feature_names=self.feature_index_, **self.kwargs)
 
         self.sk_model_.fit(X, y)
@@ -366,15 +364,15 @@ class DecisionListClassifier(ClassifierMixin, ExplainerMixin):
         perf_dicts = gen_perf_dicts(predictions, y, True, self.classes_)
         data_dicts = []
         for idx, score in enumerate(scores):
+            perf_dict_obj = None if perf_dicts is None else perf_dicts[idx]
             data_dict = {
                 "type": "rule",
                 "rule": [self.rules_[score]],
                 "precision": [self.prec_[score]],
                 "recall": [self.recall_[score]],
                 "outcome": [outcomes[idx]],
+                "perf": perf_dict_obj,
             }
-            perf_dict_obj = None if perf_dicts is None else perf_dicts[idx]
-            data_dict["perf"] = perf_dict_obj
             data_dicts.append(data_dict)
 
         internal_obj = {"overall": None, "specific": data_dicts}

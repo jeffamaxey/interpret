@@ -36,10 +36,11 @@ def run_notebook(notebook_path):
     errors = []
     for cell in nb.cells:
         if "outputs" in cell:
-            for output in cell["outputs"]:
-                if output.output_type == "error":
-                    errors.append(output)
-
+            errors.extend(
+                output
+                for output in cell["outputs"]
+                if output.output_type == "error"
+            )
     return nb, errors
 
 
@@ -54,9 +55,11 @@ def extract_notebook_paths():
     # NOTE: This test runs only when you have the source repo.
     paths = []
     if os.path.exists(notebooks_path):
-        for entry in os.scandir(notebooks_path):
-            if entry.is_file() and entry.path.endswith(".ipynb"):
-                paths.append(entry.path)
+        paths.extend(
+            entry.path
+            for entry in os.scandir(notebooks_path)
+            if entry.is_file() and entry.path.endswith(".ipynb")
+        )
     return paths
 
 

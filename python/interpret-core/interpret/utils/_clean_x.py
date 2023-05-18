@@ -587,7 +587,7 @@ def _encode_pandas_categorical_initial(X_col, pd_categories, is_ordered, process
             raise ValueError(msg)
     elif processing is None or processing == "auto":
         pass
-    elif processing == "nominal_prevalence" or processing == "nominal_alphabetical":
+    elif processing in ["nominal_prevalence", "nominal_alphabetical"]:
         # TODO: we could instead handle this by re-ordering the pandas pd_categories.
         # Someone might want to construct it quickly but then override the pd_categories
         msg = f"{processing} type invalid for pandas.CategoricalDtype"
@@ -608,12 +608,7 @@ def _encode_pandas_categorical_initial(X_col, pd_categories, is_ordered, process
                 n_items += 1
                 if isinstance(item, str):
                     n_ordinals += 1
-                elif (
-                    isinstance(item, float)
-                    or isinstance(item, int)
-                    or isinstance(item, np.floating)
-                    or isinstance(item, np.integer)
-                ):
+                elif isinstance(item, (float, int, np.floating, np.integer)):
                     n_continuous += 1
         except TypeError:
             msg = f"{processing} type invalid for pandas.CategoricalDtype"
@@ -622,8 +617,6 @@ def _encode_pandas_categorical_initial(X_col, pd_categories, is_ordered, process
 
         if n_continuous == n_items:
             msg = "continuous type invalid for pandas.CategoricalDtype"
-            _log.error(msg)
-            raise ValueError(msg)
         elif n_ordinals == n_items:
             if not is_ordered:
                 msg = "ordinal type invalid for unordered pandas.CategoricalDtype"
@@ -633,13 +626,10 @@ def _encode_pandas_categorical_initial(X_col, pd_categories, is_ordered, process
             # TODO: instead of throwing, we could match the ordinal values with the pandas pd_categories and
             # report the rest as bad items.  For now though, just assume it's bad to specify this
             msg = "cannot specify ordinal categories for a pandas.CategoricalDtype which already has categories"
-            _log.error(msg)
-            raise ValueError(msg)
         else:
             msg = f"{processing} type invalid for pandas.CategoricalDtype"
-            _log.error(msg)
-            raise ValueError(msg)
-
+        _log.error(msg)
+        raise ValueError(msg)
     categories = dict(zip(pd_categories, count(1)))
     # we'll need int64 for calling C++ anyways
     X_col = X_col.astype(dtype=np.int64, copy=False)
@@ -668,7 +658,7 @@ def _encode_pandas_categorical_existing(X_col, pd_categories, categories):
             return X_col, None
     else:
         mapping_cmp = np.arange(1, len(categories) + 1, dtype=np.int64)
-        if np.array_equal(mapping[0 : len(mapping_cmp)], mapping_cmp):
+        if np.array_equal(mapping[: len(mapping_cmp)], mapping_cmp):
             unknowns = len(categories) <= X_col
             bad = np.full(len(X_col), None, dtype=np.object_)
             bad[unknowns] = pd_categories[X_col[unknowns]]
@@ -790,18 +780,13 @@ def _process_ndarray(X_col, nonmissings, categories, processing, min_unique_cont
             categories,
             None,
         )
-    elif processing == "nominal_prevalence" or processing == "nominal_alphabetical":
+    elif processing in ["nominal_prevalence", "nominal_alphabetical"]:
         # called under: fit
         X_col, categories = _process_column_initial(
             X_col, nonmissings, processing, None
         )
         return "nominal", X_col, categories, None
-    elif (
-        processing == "quantile"
-        or processing == "rounded_quantile"
-        or processing == "uniform"
-        or processing == "winsorized"
-    ):
+    elif processing in ["quantile", "rounded_quantile", "uniform", "winsorized"]:
         # called under: fit
         X_col, bad = _process_continuous(X_col, nonmissings)
         return "continuous", X_col, None, bad
@@ -843,12 +828,7 @@ def _process_ndarray(X_col, nonmissings, categories, processing, min_unique_cont
                 n_items += 1
                 if isinstance(item, str):
                     n_ordinals += 1
-                elif (
-                    isinstance(item, float)
-                    or isinstance(item, int)
-                    or isinstance(item, np.floating)
-                    or isinstance(item, np.integer)
-                ):
+                elif isinstance(item, (float, int, np.floating, np.integer)):
                     n_continuous += 1
         except TypeError:
             msg = f"{processing} type invalid"
@@ -879,7 +859,7 @@ def _reshape_1D_if_possible(col):
         # ignore dimensions that have just 1 item and assume the intent was to give us 1D
         is_found = False
         for n_items in col.shape:
-            if 1 < n_items:
+            if n_items > 1:
                 if is_found:
                     msg = f"Cannot reshape to 1D. Original shape was {col.shape}"
                     _log.error(msg)
@@ -1047,7 +1027,7 @@ def _process_dict_column(X_col, categories, feature_type, min_unique_continuous)
             msg = f"Cannot reshape to 1D. Original shape was {X_col.shape}"
             _log.error(msg)
             raise ValueError(msg)
-    elif isinstance(X_col, list) or isinstance(X_col, tuple):
+    elif isinstance(X_col, (list, tuple)):
         X_col = np.array(X_col, np.object_)
     elif isinstance(X_col, str):
         # don't allow strings to get to the np.array conversion below
@@ -1255,18 +1235,16 @@ def unify_columns(
 def _determine_min_cols(feature_names=None, feature_types=None):
     if feature_types is None:
         return None if feature_names is None else len(feature_names)
-    else:
-        n_ignored = sum(1 for feature_type in feature_types if feature_type == "ignore")
-        if (
+    n_ignored = sum(1 for feature_type in feature_types if feature_type == "ignore")
+    if (
             feature_names is None
             or len(feature_names) == len(feature_types)
             or len(feature_names) == len(feature_types) - n_ignored
         ):
-            return len(feature_types) - n_ignored
-        else:
-            msg = f"feature_names has length {len(feature_names)} which does not match the length of feature_types {len(feature_types)}"
-            _log.error(msg)
-            raise ValueError(msg)
+        return len(feature_types) - n_ignored
+    msg = f"feature_names has length {len(feature_names)} which does not match the length of feature_types {len(feature_types)}"
+    _log.error(msg)
+    raise ValueError(msg)
 
 
 def unify_feature_names(X, feature_names_given=None, feature_types_given=None):
@@ -1288,10 +1266,7 @@ def unify_feature_names(X, feature_names_given=None, feature_types_given=None):
         X_names = None
         n_cols = X.shape[1]
     elif isinstance(X, dict):
-        X_names = list(map(str, X.keys()))
-        # there is no natural order for dictionaries, but we want a consistent order, so sort them by string
-        # python uses unicode code points for sorting, which is what we want for cross-language equivalent results
-        X_names.sort()
+        X_names = sorted(map(str, X.keys()))
         n_cols = len(X_names)
     else:
         msg = "internal error"
@@ -1308,17 +1283,14 @@ def unify_feature_names(X, feature_names_given=None, feature_types_given=None):
 
     if feature_names_given is None:
         if feature_types_given is not None:
-            if (
-                len(feature_types_given) != n_cols
-                and len(feature_types_given) != n_cols + n_ignored
-            ):
+            if len(feature_types_given) not in [n_cols, n_cols + n_ignored]:
                 msg = f"There are {len(feature_types_given)} feature_types, but X has {n_cols} columns"
                 _log.error(msg)
                 raise ValueError(msg)
             n_cols = len(feature_types_given)
 
         feature_names_in = X_names
-        if X_names is None:
+        if feature_names_in is None:
             feature_names_in = []
             # this isn't used other than to indicate new names need to be created
             feature_types_given = ["ignore"] * n_cols
@@ -1326,10 +1298,10 @@ def unify_feature_names(X, feature_names_given=None, feature_types_given=None):
         n_final = len(feature_names_given)
         if feature_types_given is not None:
             n_final = len(feature_types_given)
-            if (
-                n_final != len(feature_names_given)
-                and n_final != len(feature_names_given) + n_ignored
-            ):
+            if n_final not in [
+                len(feature_names_given),
+                len(feature_names_given) + n_ignored,
+            ]:
                 msg = f"There are {n_final} feature_types and {len(feature_names_given)} feature_names which is a mismatch"
                 _log.error(msg)
                 raise ValueError(msg)
@@ -1338,7 +1310,7 @@ def unify_feature_names(X, feature_names_given=None, feature_types_given=None):
 
         if X_names is None:
             # ok, need to use position indexing
-            if n_final != n_cols and n_final != n_cols + n_ignored:
+            if n_final not in [n_cols, n_cols + n_ignored]:
                 msg = f"There are {n_final} features, but X has {n_cols} columns"
                 _log.error(msg)
                 raise ValueError(msg)
@@ -1356,12 +1328,14 @@ def unify_feature_names(X, feature_names_given=None, feature_types_given=None):
                     if feature_type_given != "ignore"
                 ]
 
-            X_names_unique = set(
-                name for name, n_count in Counter(X_names).items() if n_count == 1
-            )
+            X_names_unique = {
+                name
+                for name, n_count in Counter(X_names).items()
+                if n_count == 1
+            }
             if any(name not in X_names_unique for name in names_used):
                 # ok, need to use position indexing
-                if n_final != n_cols and n_final != n_cols + n_ignored:
+                if n_final not in [n_cols, n_cols + n_ignored]:
                     msg = f"There are {n_final} features, but X has {n_cols} columns"
                     _log.error(msg)
                     raise ValueError(msg)
@@ -1369,13 +1343,13 @@ def unify_feature_names(X, feature_names_given=None, feature_types_given=None):
     if feature_types_given is not None:
         if len(feature_types_given) == len(feature_names_in):
             if len(feature_names_in) - n_ignored != len(
-                set(
+                {
                     feature_name_in
                     for feature_name_in, feature_type_given in zip(
                         feature_names_in, feature_types_given
                     )
                     if feature_type_given != "ignore"
-                )
+                }
             ):
                 msg = "cannot have duplicate feature names"
                 _log.error(msg)
@@ -1491,7 +1465,7 @@ def preclean_X(X, feature_names, feature_types, n_samples=None, sample_source="y
             _log.error(msg)
             raise ValueError(msg)
         return X, 0
-    elif isinstance(X, list) or isinstance(X, tuple):
+    elif isinstance(X, (list, tuple)):
         is_copied = False
     elif callable(getattr(X, "__array__", None)):
         X = X.__array__()
@@ -1530,7 +1504,7 @@ def preclean_X(X, feature_names, feature_types, n_samples=None, sample_source="y
 
     for idx in range(len(X)):
         sample = X[idx]
-        if isinstance(sample, list) or isinstance(sample, tuple):
+        if isinstance(sample, (list, tuple)):
             pass
         elif isinstance(sample, ma.masked_array):
             # do this before np.ndarray since ma.masked_array is a subclass of np.ndarray
@@ -1541,9 +1515,7 @@ def preclean_X(X, feature_names, feature_types, n_samples=None, sample_source="y
                 sample.astype(np.object_, copy=False).filled(np.nan)
             )
         elif isinstance(sample, np.ndarray):
-            if sample.ndim == 1:
-                pass
-            else:
+            if sample.ndim != 1:
                 if not is_copied:
                     is_copied = True
                     X = list(X)

@@ -34,7 +34,7 @@ def convert_categorical_to_continuous(categories):
     # We can't convert a continuous feature that has cuts back into categoricals
     # since the categorical value could have been anything between the cuts that we know about.
 
-    clusters = dict()
+    clusters = {}
     non_float_idxs = set()
 
     old_min = np.nan
@@ -105,11 +105,7 @@ def convert_categorical_to_continuous(categories):
 
             # floats have more precision the smaller they are,
             # so use the smaller number as the anchor
-            if abs(low) <= abs(high):
-                mid = low + half_diff
-            else:
-                mid = high - half_diff
-
+            mid = low + half_diff if abs(low) <= abs(high) else high - half_diff
             if mid <= low:
                 # this can happen with very small half_diffs that underflow the add/subtract operation
                 # if this happens the numbers must be very close together on the order of a float tick.
@@ -270,7 +266,7 @@ def order_terms(term_features, *args):
     sorted_items = sorted(zip(keys, term_features, *args))
     ret = tuple(list(x) for x in islice(zip(*sorted_items), 1, None))
     # in Python if only 1 item exists then the item is returned and not a tuple
-    return ret if 2 <= len(ret) else ret[0]
+    return ret if len(ret) >= 2 else ret[0]
 
 
 def remove_unused_higher_bins(term_features, bins):
@@ -293,7 +289,7 @@ def deduplicate_bins(bins):
     # be able to avoid re-binning data for pairs that have already been processed in mains or other pairs since we
     # use the id of the bins to identify feature data that was previously binned
 
-    uniques = dict()
+    uniques = {}
     for feature_idx in range(len(bins)):
         bin_levels = bins[feature_idx]
         highest_key = None

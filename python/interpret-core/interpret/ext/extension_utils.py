@@ -22,11 +22,9 @@ def _validate_class_name(proposed_class_name):
     # https://stackoverflow.com/questions/10120295
     # TODO: Support other languages
     match = re.match(r"[a-zA-Z_][a-zA-Z_0-9]+", proposed_class_name)
-    if match is None or match.group(0) != proposed_class_name:
+    if match is None or match[0] != proposed_class_name:
         raise ValueError(
-            "Invalid class name {}. Class names must start with a "
-            "letter or an underscore and can continue with letters, "
-            "numbers, and underscores.".format(proposed_class_name)
+            f"Invalid class name {proposed_class_name}. Class names must start with a letter or an underscore and can continue with letters, numbers, and underscores."
         )
 
 
@@ -40,35 +38,27 @@ def load_class_extensions(current_module, extension_key, extension_class_validat
           before it is registered.
     """
     for entrypoint in pkg_resources.iter_entry_points(extension_key):
-        _log.debug("processing entrypoint {}".format(extension_key))
+        _log.debug(f"processing entrypoint {extension_key}")
         try:
             extension_class_name = entrypoint.name
             extension_class = entrypoint.load()
             _log.debug(
-                "loading entrypoint key {} with name {} with object {}".format(
-                    extension_key, extension_class_name, extension_class
-                )
+                f"loading entrypoint key {extension_key} with name {extension_class_name} with object {extension_class}"
             )
             _validate_class_name(extension_class_name)
 
             if not extension_class_validator(extension_class):
-                raise ValueError("class {} failed validation.".format(extension_class))
+                raise ValueError(f"class {extension_class} failed validation.")
 
             if getattr(current_module, extension_class_name, None) is not None:
                 raise ValueError(
-                    "class name {} already exists for module {}.".format(
-                        extension_class_name, current_module.__name__
-                    )
+                    f"class name {extension_class_name} already exists for module {current_module.__name__}."
                 )
 
             setattr(current_module, extension_class_name, extension_class)
 
         except Exception as e:  # pragma: no cover
-            msg = "Failure while loading {}. Failed to load entrypoint {} with exception {}.".format(
-                extension_key,
-                entrypoint,
-                "".join(traceback.format_exception(type(e), e, e.__traceback__)),
-            )
+            msg = f'Failure while loading {extension_key}. Failed to load entrypoint {entrypoint} with exception {"".join(traceback.format_exception(type(e), e, e.__traceback__))}.'
             _log.warning(msg)
 
             warn(msg)

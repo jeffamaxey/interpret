@@ -65,7 +65,7 @@ def SPOT_GreedySubsetSelection(C, targetMarginal, m):
             # print("gammaOpt \n", gammaOpt);
             currOptw = cp.asarray(cp.sum(gammaOpt, axis=1).flatten())
             # print("currOptw \n", currOptw);
-        sizeS = sizeS + 1
+        sizeS += 1
     # end = time.time()
     # print("S : ", S)
     # print("Time : ", end - start)

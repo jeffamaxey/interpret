@@ -8,9 +8,7 @@ from ._environment import EnvironmentDetector, is_cloud_env, ENV_DETECTED
 
 from .._version import __version__
 
-JS_URL = "https://unpkg.com/@interpretml/interpret-inline@{}/dist/interpret-inline.js".format(
-    __version__
-)
+JS_URL = f"https://unpkg.com/@interpretml/interpret-inline@{__version__}/dist/interpret-inline.js"
 
 _log = logging.getLogger(__name__)
 
@@ -50,11 +48,10 @@ class AutoVisualizeProvider(VisualizeProvider):
                 self.provider = InlineProvider(
                     detected_envs=detected_envs, js_url=JS_URL
                 )
+            elif self.app_runner:
+                self.provider = DashProvider(self.app_runner)
             else:
-                if self.app_runner:
-                    self.provider = DashProvider(self.app_runner)
-                else:
-                    self.provider = DashProvider.from_address()
+                self.provider = DashProvider.from_address()
         else:  # ENV_DETECTED.NON_CLOUD
             _log.info("Detected non-cloud environment.")
             if self.app_runner:
@@ -117,8 +114,6 @@ class PreserveProvider(VisualizeProvider):
             _log.error(msg)
             if file_name is None:
                 render_html(msg)
-            else:
-                pass
             return False
 
         if isinstance(visual, go.Figure):
@@ -200,8 +195,7 @@ class DashProvider(VisualizeProvider):
         share_tables = kwargs.pop("share_tables", None)
         self.app_runner.register(explanation, share_tables=share_tables)
 
-        url = self.app_runner.display_link(explanation)
-        return url
+        return self.app_runner.display_link(explanation)
 
     def render(self, explanation, **kwargs):
         self.idempotent_start()

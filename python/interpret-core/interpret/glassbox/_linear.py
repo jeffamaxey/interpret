@@ -97,7 +97,7 @@ class BaseLinear:
         self.categorical_uniq_ = {}
 
         for i, feature_type in enumerate(self.feature_types_in_):
-            if feature_type == "nominal" or feature_type == "ordinal":
+            if feature_type in ["nominal", "ordinal"]:
                 self.categorical_uniq_[i] = list(sorted(set(X[:, i])))
 
         unique_val_counts = np.zeros(len(self.feature_names_in_), dtype=np.int64)
@@ -202,12 +202,9 @@ class BaseLinear:
         for i, instance in enumerate(X):
             scores = list(coef * instance)
             scores_list.append(scores)
-            data_dict = {}
-            data_dict["data_type"] = "univariate"
-
             # Performance related (conditional)
             perf_dict_obj = None if perf_dicts is None else perf_dicts[i]
-            data_dict["perf"] = perf_dict_obj
+            data_dict = {"data_type": "univariate", "perf": perf_dict_obj}
             perf_list.append(perf_dict_obj)
 
             # Names/scores
@@ -390,31 +387,30 @@ class LinearExplanation(FeatureValueExplanation):
         if isinstance(key, tuple) and len(key) == 2:
             provider, key = key
             if (
-                "mli" == provider
-                and "mli" in self.data(-1)
-                and self.explanation_type == "global"
+                provider != "mli"
+                or "mli" not in self.data(-1)
+                or self.explanation_type != "global"
             ):
-                explanation_list = self.data(-1)["mli"]
-                explanation_index = get_explanation_index(
-                    explanation_list, "global_feature_importance"
-                )
-                scores = explanation_list[explanation_index]["value"]["scores"]
-                sort_indexes = get_sort_indexes(
-                    scores, sort_fn=lambda x: -abs(x), top_n=15
-                )
-                sorted_scores = mli_sort_take(
-                    scores, sort_indexes, reverse_results=True
-                )
-                sorted_names = mli_sort_take(
-                    self.feature_names, sort_indexes, reverse_results=True
-                )
-                return mli_plot_horizontal_bar(
-                    sorted_scores,
-                    sorted_names,
-                    title="Overall Importance:<br>Coefficients",
-                )
-            else:  # pragma: no cover
-                raise RuntimeError("Visual provider {} not supported".format(provider))
+                raise RuntimeError(f"Visual provider {provider} not supported")
+            explanation_list = self.data(-1)["mli"]
+            explanation_index = get_explanation_index(
+                explanation_list, "global_feature_importance"
+            )
+            scores = explanation_list[explanation_index]["value"]["scores"]
+            sort_indexes = get_sort_indexes(
+                scores, sort_fn=lambda x: -abs(x), top_n=15
+            )
+            sorted_scores = mli_sort_take(
+                scores, sort_indexes, reverse_results=True
+            )
+            sorted_names = mli_sort_take(
+                self.feature_names, sort_indexes, reverse_results=True
+            )
+            return mli_plot_horizontal_bar(
+                sorted_scores,
+                sorted_names,
+                title="Overall Importance:<br>Coefficients",
+            )
         else:
             data_dict = self.data(key)
             if data_dict is None:
@@ -424,11 +420,9 @@ class LinearExplanation(FeatureValueExplanation):
                 data_dict = sort_take(
                     data_dict, sort_fn=lambda x: -abs(x), top_n=15, reverse_results=True
                 )
-                figure = plot_horizontal_bar(
+                return plot_horizontal_bar(
                     data_dict, title="Overall Importance:<br>Coefficients"
                 )
-                return figure
-
         return super().visualize(key)
 
 
@@ -533,7 +527,7 @@ def _hist_per_column(arr, feature_types=None):
                 count, bin_edge = np.histogram(arr[:, i], bins="doane")
                 counts.append(count)
                 bin_edges.append(bin_edge)
-            elif feat_type == "nominal" or feat_type == "ordinal":
+            elif feat_type in ["nominal", "ordinal"]:
                 # Todo: check if this call
                 bin_edge, count = np.unique(arr[:, i], return_counts=True)
                 counts.append(count)

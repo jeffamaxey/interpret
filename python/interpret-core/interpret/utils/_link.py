@@ -18,7 +18,7 @@ def link(link_function, link_param, predictions):
     elif link_function == "log":
         return np.log(predictions)
     else:
-        raise ValueError("Unsupported link function: {}".format(link_function))
+        raise ValueError(f"Unsupported link function: {link_function}")
 
 
 def inv_link(link_function, link_param, scores, n_classes):
@@ -36,4 +36,4 @@ def inv_link(link_function, link_param, scores, n_classes):
     elif link_function == "log":
         return np.exp(scores)
     else:
-        raise ValueError("Unsupported link function: {}".format(link_function))
+        raise ValueError(f"Unsupported link function: {link_function}")

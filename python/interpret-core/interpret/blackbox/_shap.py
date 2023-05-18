@@ -38,7 +38,7 @@ class ShapKernel(ExplainerMixin):
         data, n_samples = preclean_X(data, feature_names, feature_types)
 
         predict_fn, n_classes, _ = determine_classes(model, data, n_samples)
-        if 3 <= n_classes:
+        if n_classes >= 3:
             raise Exception("multiclass SHAP not supported")
         predict_fn = unify_predict_fn(predict_fn, data, 1 if n_classes == 2 else -1)
 

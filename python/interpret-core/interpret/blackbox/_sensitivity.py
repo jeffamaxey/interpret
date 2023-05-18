@@ -77,7 +77,7 @@ class MorrisSensitivity(ExplainerMixin):
         data, n_samples = preclean_X(data, feature_names, feature_types)
 
         predict_fn, n_classes, _ = determine_classes(model, data, n_samples)
-        if 3 <= n_classes:
+        if n_classes >= 3:
             raise Exception("multiclass MorrisSensitivity not supported")
         predict_fn = unify_predict_fn(predict_fn, data, 1 if n_classes == 2 else -1)
 
@@ -225,10 +225,8 @@ class MorrisExplanation(FeatureValueExplanation):
             title = "Morris Sensitivity<br>Convergence Index: {0:.3f}".format(
                 data_dict["convergence_index"]
             )
-            figure = plot_horizontal_bar(data_dict, start_zero=True, title=title)
-            return figure
-
-        if self.explanation_type == "global" and key is not None:
+            return plot_horizontal_bar(data_dict, start_zero=True, title=title)
+        if self.explanation_type == "global":
             multi_html_template = r"""
                 <style>
                 .container {{
@@ -281,11 +279,9 @@ class MorrisExplanation(FeatureValueExplanation):
                 mu_star_conf=data_dict["mu_star_conf"],
             )
 
-            html_str = multi_html_template.format(
+            return multi_html_template.format(
                 feature_name=self.feature_names[key], analyses=analysis
             )
-            return html_str
-
         return super().visualize(key)
 
 
@@ -311,9 +307,8 @@ def _soft_min_max(values, soft_add=1, soft_bounds=1):
 
 def _gen_problem_from_data(data, feature_names):
     bounds = [_soft_min_max(data[:, i]) for i, _ in enumerate(feature_names)]
-    problem = {
+    return {
         "num_vars": len(feature_names),
         "names": feature_names,
         "bounds": bounds,
     }
-    return problem

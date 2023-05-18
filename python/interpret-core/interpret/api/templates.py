@@ -98,39 +98,34 @@ class FeatureValueExplanation(interpret.api.base.ExplanationMixin):
             )
             return plot_horizontal_bar(data_dict)
 
-        # Handle local instance graphs
         if self.explanation_type == "local":
             if isinstance(key, tuple) and len(key) == 2:
                 provider, key = key
-                # TODO: MLI should handle multiclass at a future date.
-                if "mli" == provider and "mli" in self.data(-1):
-                    explanation_list = self.data(-1)["mli"]
-                    explanation_index = get_explanation_index(
-                        explanation_list, "local_feature_importance"
-                    )
-                    local_explanation = explanation_list[explanation_index]["value"]
-                    scores = local_explanation["scores"]
-                    perf = local_explanation["perf"]
-                    sort_indexes = get_sort_indexes(
-                        scores[key], sort_fn=lambda x: -abs(x), top_n=15
-                    )
-                    sorted_scores = mli_sort_take(
-                        scores[key], sort_indexes, reverse_results=True
-                    )
-                    sorted_names = mli_sort_take(
-                        self.feature_names, sort_indexes, reverse_results=True
-                    )
-                    instances = explanation_list[1]["value"]["dataset_x"]
-                    return mli_plot_horizontal_bar(
-                        sorted_scores,
-                        sorted_names,
-                        values=instances[key],
-                        perf=perf[key],
-                    )
-                else:  # pragma: no cover
-                    raise RuntimeError(
-                        "Visual provider {} not supported".format(provider)
-                    )
+                if provider != "mli" or "mli" not in self.data(-1):
+                    raise RuntimeError(f"Visual provider {provider} not supported")
+                explanation_list = self.data(-1)["mli"]
+                explanation_index = get_explanation_index(
+                    explanation_list, "local_feature_importance"
+                )
+                local_explanation = explanation_list[explanation_index]["value"]
+                scores = local_explanation["scores"]
+                sort_indexes = get_sort_indexes(
+                    scores[key], sort_fn=lambda x: -abs(x), top_n=15
+                )
+                sorted_scores = mli_sort_take(
+                    scores[key], sort_indexes, reverse_results=True
+                )
+                sorted_names = mli_sort_take(
+                    self.feature_names, sort_indexes, reverse_results=True
+                )
+                instances = explanation_list[1]["value"]["dataset_x"]
+                perf = local_explanation["perf"]
+                return mli_plot_horizontal_bar(
+                    sorted_scores,
+                    sorted_names,
+                    values=instances[key],
+                    perf=perf[key],
+                )
             else:
                 is_multiclass = is_multiclass_local_data_dict(data_dict)
                 if is_multiclass:
@@ -151,7 +146,7 @@ class FeatureValueExplanation(interpret.api.base.ExplanationMixin):
             title = self.feature_names[key]
         if feature_type == "continuous":
             return plot_line(data_dict, title=title)
-        elif feature_type == "nominal" or feature_type == "ordinal":
+        elif feature_type in ["nominal", "ordinal"]:
             return plot_bar(data_dict, title=title)
         elif feature_type == "interaction":
             # TODO: Generalize this out.

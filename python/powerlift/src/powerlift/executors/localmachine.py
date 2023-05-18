@@ -26,11 +26,7 @@ class LocalMachine(Executor):
             raise_exception (bool, optional): Raise exception on failure. Defaults to False.
             wheel_filepaths (List[str], optional): List of wheel filepaths to install on ACI trial run. Defaults to None.
         """
-        if n_cpus != 1:
-            self._pool = Pool(processes=n_cpus)
-        else:
-            self._pool = None
-
+        self._pool = Pool(processes=n_cpus) if n_cpus != 1 else None
         self._trial_id_to_result = {}
         self._store = store
         self._n_cpus = n_cpus

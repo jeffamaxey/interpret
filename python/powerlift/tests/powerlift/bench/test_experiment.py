@@ -82,9 +82,7 @@ def test_multiprocessing():
     for i in range(num_tasks):
         result = pool.apply_async(_add, (i, i), error_callback=_err_handler)
         results.append(result)
-    counter = 0
-    for i in range(num_tasks):
-        counter += results[i].get()
+    counter = sum(results[i].get() for i in range(num_tasks))
     assert counter == 992
     pool.close()
 

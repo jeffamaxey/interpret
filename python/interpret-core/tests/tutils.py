@@ -62,8 +62,7 @@ def get_all_explainers():
         (PartialDependence, False),
         # PermutationImportance
     ]
-    all_explainers = []
-    all_explainers.extend(model_explainer_classes)
+    all_explainers = list(model_explainer_classes)
     all_explainers.extend(specific_explainer_classes)
     all_explainers.extend(blackbox_explainer_classes)
     all_explainers.extend(data_explainer_classes)
@@ -79,18 +78,15 @@ def get_all_explainers():
 
 
 def synthetic_regression():
-    dataset = _synthetic("regression")
-    return dataset
+    return _synthetic("regression")
 
 
 def synthetic_classification():
-    dataset = _synthetic("classification")
-    return dataset
+    return _synthetic("classification")
 
 
 def synthetic_multiclass():
-    dataset = _synthetic("multiclass")
-    return dataset
+    return _synthetic("multiclass")
 
 
 def _synthetic(mode="regression"):
@@ -106,13 +102,11 @@ def _synthetic(mode="regression"):
         X_df, y_df, test_size=0.20, random_state=1
     )
 
-    dataset = {
+    return {
         "full": {"X": X_df, "y": y_df},
         "train": {"X": X_df_train, "y": y_df_train},
         "test": {"X": X_df_test, "y": y_df_test},
     }
-
-    return dataset
 
 
 def iris_classification():
@@ -127,13 +121,11 @@ def iris_classification():
         X_df, y_df, test_size=0.20, random_state=1
     )
 
-    dataset = {
+    return {
         "full": {"X": X_df, "y": y_df},
         "train": {"X": X_df_train, "y": y_df_train},
         "test": {"X": X_df_test, "y": y_df_test},
     }
-
-    return dataset
 
 
 def adult_classification(sample=0.01):
@@ -158,7 +150,7 @@ def adult_classification(sample=0.01):
         "NativeCountry",
         "Income",
     ]
-    train_cols = df.columns[0:-1]
+    train_cols = df.columns[:-1]
     label = df.columns[-1]
     X_df = df[train_cols].values
     y_df = df[label].apply(lambda x: 0 if x == " <=50K" else 1)
@@ -167,13 +159,11 @@ def adult_classification(sample=0.01):
         X_df, y_df, test_size=0.20, random_state=1
     )
 
-    dataset = {
+    return {
         "full": {"X": X_df, "y": y_df},
         "train": {"X": X_df_train, "y": y_df_train},
         "test": {"X": X_df_test, "y": y_df_test},
     }
-
-    return dataset
 
 
 def valid_predict(explainer, X):
@@ -227,13 +217,7 @@ def valid_visualization(obj):
 
 
 def valid_data_dict(data_dict):
-    if data_dict is None:
-        return True
-
-    if not isinstance(data_dict, dict):
-        return False
-
-    return True
+    return True if data_dict is None else isinstance(data_dict, dict)
 
 
 def valid_internal_obj(obj):

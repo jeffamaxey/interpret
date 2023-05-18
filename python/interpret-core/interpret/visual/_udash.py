@@ -211,11 +211,7 @@ def gen_overall_plot(exp, model_idx):
     # NOTE: We also have support for data frames, but we don't advertise it.
     if isinstance(figure, NDFrame):
         records = figure.to_dict("records")
-        columns = [
-            {"name": col, "id": col}
-            for _, col in enumerate(figure.columns)
-            if col != "id"
-        ]
+        columns = [{"name": col, "id": col} for col in figure.columns if col != "id"]
         output_graph = html.Div(
             [
                 dt.DataTable(
@@ -254,7 +250,7 @@ def gen_overall_plot(exp, model_idx):
         raise Exception("Not supported visualization type: {0}".format(_type))
 
     name = exp.name
-    output_div = html.Div(
+    return html.Div(
         [
             html.Div(
                 html.Div("{0} (Overall)".format(name), className="card-title"),
@@ -264,18 +260,13 @@ def gen_overall_plot(exp, model_idx):
         ],
         className="card",
     )
-    return output_div
 
 
 def gen_plot(exp, picker, model_idx, counter):
     figure = exp.visualize(key=picker)
     if isinstance(figure, NDFrame):
         records = figure.to_dict("records")
-        columns = [
-            {"name": col, "id": col}
-            for _, col in enumerate(figure.columns)
-            if col != "id"
-        ]
+        columns = [{"name": col, "id": col} for col in figure.columns if col != "id"]
         output_graph = dt.DataTable(
             data=records,
             columns=columns,
@@ -309,17 +300,18 @@ def gen_plot(exp, picker, model_idx, counter):
 
     idx_str = str(picker)
     name = exp.name
-    output_div = html.Div(
+    return html.Div(
         [
             html.Div(
-                html.Div("{0} [{1}]".format(name, idx_str), className="card-title"),
+                html.Div(
+                    "{0} [{1}]".format(name, idx_str), className="card-title"
+                ),
                 className="card-header",
             ),
             html.Div(output_graph, className="card-body card-figure"),
         ],
         className="card",
     )
-    return output_div
 
 
 # Dash app code
@@ -656,10 +648,7 @@ The explanations available are split into tabs, each covering an aspect of the p
 
     def register_update_instance_idx_cb():
         def output_callback(is_shared, shared_indices, specific_indices):
-            if is_shared is not None:
-                return shared_indices
-            else:
-                return specific_indices
+            return shared_indices if is_shared is not None else specific_indices
 
         return output_callback
 
@@ -831,33 +820,23 @@ The explanations available are split into tabs, each covering an aspect of the p
 
     @app.callback(Output("data-tab", "children"), [Input("tabs", "value")])
     def update_data_tab_content(tab):
-        if tab is None or tab != "data":
-            return None
-        return gen_tab(tab)
+        return None if tab is None or tab != "data" else gen_tab(tab)
 
     @app.callback(Output("perf-tab", "children"), [Input("tabs", "value")])
     def update_perf_tab_content(tab):
-        if tab is None or tab != "perf":
-            return None
-        return gen_tab(tab)
+        return None if tab is None or tab != "perf" else gen_tab(tab)
 
     @app.callback(Output("overview-tab", "children"), [Input("tabs", "value")])
     def update_overview_tab_content(tab):
-        if tab is None or tab != "overview":
-            return None
-        return gen_overview_tab()
+        return None if tab is None or tab != "overview" else gen_overview_tab()
 
     @app.callback(Output("local-tab", "children"), [Input("tabs", "value")])
     def update_local_tab_content(tab):
-        if tab is None or tab != "local":
-            return None
-        return gen_tab(tab)
+        return None if tab is None or tab != "local" else gen_tab(tab)
 
     @app.callback(Output("global-tab", "children"), [Input("tabs", "value")])
     def update_global_tab_content(tab):
-        if tab is None or tab != "global":
-            return None
-        return gen_tab(tab)
+        return None if tab is None or tab != "global" else gen_tab(tab)
 
     _log.info("Generated full dash")
     return app
@@ -892,14 +871,12 @@ def generate_app(
     # If we are passed a single explanation as a scalar, generate mini app.
     if not isinstance(ctx, list):
         new_item = _expand_ctx_item(ctx)
-        app = generate_app_mini(
+        return generate_app_mini(
             new_item,
             url_base_pathname=url_base_pathname,
             requests_pathname_prefix=requests_pathname_prefix,
             routes_pathname_prefix=routes_pathname_prefix,
         )
-        return app
-
     app = generate_app_full(
         requests_pathname_prefix=requests_pathname_prefix,
         routes_pathname_prefix=routes_pathname_prefix,

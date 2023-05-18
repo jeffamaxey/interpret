@@ -35,9 +35,10 @@ def debug_info():
     from ._version import __version__
     from .visual._interactive import status_show_server
 
-    debug_dict = {}
-    debug_dict["interpret.__version__"] = __version__
-    debug_dict["interpret.status_show_server"] = status_show_server()
+    debug_dict = {
+        "interpret.__version__": __version__,
+        "interpret.status_show_server": status_show_server(),
+    }
     debug_dict["interpret.static_system_info"] = static_system_info()
     debug_dict["interpret.dynamic_system_info"] = dynamic_system_info()
 
@@ -93,7 +94,7 @@ def static_system_info():
     import platform
     import psutil
 
-    system_info = {
+    return {
         "platform": platform.platform(),
         "platform.architecture": platform.architecture(),
         "platform.machine": platform.machine(),
@@ -104,11 +105,11 @@ def static_system_info():
         "platform.version": platform.version(),
         "psutil.logical_cpu_count": psutil.cpu_count(logical=True),
         "psutil.physical_cpu_count": psutil.cpu_count(logical=False),
-        "psutil.virtual_memory.total": _sizeof_fmt(psutil.virtual_memory().total),
+        "psutil.virtual_memory.total": _sizeof_fmt(
+            psutil.virtual_memory().total
+        ),
         "psutil.swap_memory.total": _sizeof_fmt(psutil.swap_memory().total),
     }
-
-    return system_info
 
 
 def _sizeof_fmt(num, suffix="B"):

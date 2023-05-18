@@ -92,9 +92,7 @@ class Marginal(ExplainerMixin):
         }
 
         # Sample down
-        n_samples = (
-            self.max_scatter_samples if len(y) > self.max_scatter_samples else len(y)
-        )
+        n_samples = min(len(y), self.max_scatter_samples)
         idx = np.random.choice(np.arange(len(y)), n_samples, replace=False)
         X_sample = X[idx, :]
         y_sample = y[idx]
@@ -104,7 +102,7 @@ class Marginal(ExplainerMixin):
             if feature_type == "continuous":
                 counts, values = np.histogram(X[:, feat_idx], bins="doane")
                 corr = pearsonr(X[:, feat_idx], y)[0]
-            elif feature_type == "nominal" or feature_type == "ordinal":
+            elif feature_type in ["nominal", "ordinal"]:
                 values, counts = np.unique(X[:, feat_idx], return_counts=True)
                 corr = None
             else:
@@ -200,18 +198,14 @@ class MarginalExplanation(ExplanationMixin):
             return None
 
         if key is None:
-            figure = plot_density(
+            return plot_density(
                 data_dict["density"], title="Response", ytitle="Density"
             )
-            return figure
-
         # Show feature graph
         density_dict = data_dict["feature_density"]
 
         bin_size = density_dict["names"][1] - density_dict["names"][0]
-        is_categorical = (
-            self.feature_types[key] == "nominal" or self.feature_types[key] == "ordinal"
-        )
+        is_categorical = self.feature_types[key] in ["nominal", "ordinal"]
 
         if is_categorical:
             trace1 = go.Histogram(x=data_dict["x"], name="x density", yaxis="y2")
@@ -242,8 +236,7 @@ class MarginalExplanation(ExplanationMixin):
                 size=resp_bin_size,
             ),
         )
-        data.append(trace1)
-        data.append(trace2)
+        data.extend((trace1, trace2))
         x = data_dict["feature_samples"]
         y = data_dict["response_samples"]
         if not is_categorical:
@@ -282,8 +275,7 @@ class MarginalExplanation(ExplanationMixin):
             if corr is not None
             else "",
         )
-        fig = go.Figure(data=data, layout=layout)
-        return fig
+        return go.Figure(data=data, layout=layout)
 
 
 class ClassHistogram(ExplainerMixin):
@@ -407,10 +399,10 @@ class ClassHistogramExplanation(ExplanationMixin):
         if key is None:
             return self._internal_obj["overall"]
 
-        specific_dict = {}
-        specific_dict["x"] = self._internal_obj["overall"]["X"][:, key]
-        specific_dict["y"] = self._internal_obj["overall"]["y"]
-        return specific_dict
+        return {
+            "x": self._internal_obj["overall"]["X"][:, key],
+            "y": self._internal_obj["overall"]["y"],
+        }
 
     def visualize(self, key=None):
         """Provides interactive visualizations.
@@ -441,9 +433,7 @@ class ClassHistogramExplanation(ExplanationMixin):
                 showlegend=False,
                 xaxis=dict(type="category"),
             )
-            fig = go.Figure(data=[trace1, trace2], layout=layout)
-            return fig
-
+            return go.Figure(data=[trace1, trace2], layout=layout)
         # Show feature graph
         x = data_dict["x"]
         y = data_dict["y"]
@@ -452,9 +442,7 @@ class ClassHistogramExplanation(ExplanationMixin):
 
         classes = list(sorted(set(y)))
         data = []
-        is_categorical = (
-            self.feature_types[key] == "nominal" or self.feature_types[key] == "ordinal"
-        )
+        is_categorical = self.feature_types[key] in ["nominal", "ordinal"]
         if not is_categorical:
             _, bins = np.histogram(x, bins="doane")
         for idx, current_class in enumerate(classes):

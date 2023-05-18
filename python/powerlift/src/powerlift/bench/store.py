@@ -87,8 +87,7 @@ class BytesParser:
             src_ast = _parse_function(src)
             if src_ast is None:
                 raise RuntimeError("Serialized code not valid.")
-            compiled_func = _compile_function(src_ast)
-            return compiled_func
+            return _compile_function(src_ast)
         elif mimetype == MIMETYPE_WHEEL:
             json_record = json.load(bstream)
             content = base64.b64decode(json_record["content"].encode("ascii"))
@@ -225,12 +224,11 @@ class Store:
         trial_orms = self._session.query(db.Trial).filter(db.Trial.id.in_(trial_ids))
         for trial_orm in trial_orms:
             trial_orm.input_assets.append(trial_run_fn_asset_orm)
-            if len(wheel_asset_orms) > 0:
+            if wheel_asset_orms:
                 trial_orm.input_assets.extend(wheel_asset_orms)
 
         if trial_orms.first() is not None:
-            orms = [trial_run_fn_asset_orm]
-            orms.extend(wheel_asset_orms)
+            orms = [trial_run_fn_asset_orm, *wheel_asset_orms]
             self._session.bulk_save_objects(orms, return_defaults=True)
             self._session.commit()
         return None
@@ -268,7 +266,7 @@ class Store:
                 }
             )
 
-        for desc_id in desc_id_to_values.keys():
+        for desc_id in desc_id_to_values:
             values_df = pd.DataFrame.from_records(
                 desc_id_to_values[desc_id], index="seq_num"
             )
@@ -361,15 +359,11 @@ class Store:
 
     def find_task_by_id(self, _id: int):
         task_orm = self._session.query(db.Task).filter_by(id=_id).one_or_none()
-        if task_orm is None:
-            return None
-        return self.from_db_task(task_orm)
+        return None if task_orm is None else self.from_db_task(task_orm)
 
     def find_trial_by_id(self, _id: int):
         trial_orm = self._session.query(db.Trial).filter_by(id=_id).one_or_none()
-        if trial_orm is None:
-            return None
-        return self.from_db_trial(trial_orm)
+        return None if trial_orm is None else self.from_db_trial(trial_orm)
 
     def get_or_create_experiment(self, name: str, description: str) -> Tuple[int, bool]:
         """Get or create experiment keyed by name."""
@@ -447,8 +441,7 @@ class Store:
 
     def iter_tasks(self):
         for task_orm in self._session.query(db.Task).all():
-            task = self.from_db_task(task_orm)
-            yield task
+            yield self.from_db_task(task_orm)
 
     def add_measure(
         self,
@@ -772,10 +765,9 @@ def retrieve_pmlb(cache_dir: str = None) -> Generator[SupervisedDataset]:
     if cache_dir is not None:
         cache_dir = pathlib.Path(cache_dir, "pmlb")
 
-    dataset_names = []
-    dataset_names.extend(
-        [("classification", name) for name in classification_dataset_names]
-    )
+    dataset_names = [
+        ("classification", name) for name in classification_dataset_names
+    ]
     dataset_names.extend([("regression", name) for name in regression_dataset_names])
 
     for problem_type, dataset_name in tqdm(dataset_names, desc="pmlb"):
@@ -790,7 +782,7 @@ def retrieve_pmlb(cache_dir: str = None) -> Generator[SupervisedDataset]:
             X = df.drop("target", axis=1)
             y = df["target"]
             problem = problem_type
-            if problem_type == "classification":
+            if problem == "classification":
                 problem = "binary" if len(y.unique()) == 2 else "multiclass"
             meta = {
                 "name": name,

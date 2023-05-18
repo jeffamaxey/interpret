@@ -50,8 +50,8 @@ def _purify_once(mat, densities=None, m1=None, m2=None, randomize=False):
     if randomize:  # randomize each row/col selection rather than in-order
         nonzero_rows = set(list(range(mat.shape[0])))
         nonzero_cols = set(list(range(mat.shape[1])))
-        for iteration in range(mat.shape[0] + mat.shape[1]):
-            if np.random.binomial(1, 0.5) and len(nonzero_rows) > 0:
+        for _ in range(mat.shape[0] + mat.shape[1]):
+            if np.random.binomial(1, 0.5) and nonzero_rows:
                 i = np.random.choice(list(nonzero_rows))  # todo: maybe slow
                 nonzero_rows.remove(i)
                 mat, m1 = _purify_row(mat, m1, densities, i)

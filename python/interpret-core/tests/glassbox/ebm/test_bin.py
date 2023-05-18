@@ -32,19 +32,11 @@ def test_eval_terms():
         [shared_cuts, shared_cuts, np.array([], dtype=np.float64)],
     ]
 
-    term_features = []
-    term_scores = []
-
-    term_features.append([0])
-    term_scores.append(np.array([0.1, 0.2, 0.3, 0], dtype=np.float64))
-
-    term_features.append([1])
+    term_scores = [np.array([0.1, 0.2, 0.3, 0], dtype=np.float64)]
     term_scores.append(np.array([0.01, 0.02, 0.03, 0.04, 0], dtype=np.float64))
 
-    term_features.append([2])
     term_scores.append(np.array([0.001, 0.002, 0.003, 0], dtype=np.float64))
 
-    term_features.append([0, 1])
     term_scores.append(
         np.array(
             [[0.0001, 0.0002, 0.0003, 0], [0.0004, 0.0005, 0.0006, 0], [0, 0, 0, 0]],
@@ -52,7 +44,6 @@ def test_eval_terms():
         )
     )
 
-    term_features.append([0, 2])
     term_scores.append(
         np.array(
             [
@@ -64,7 +55,7 @@ def test_eval_terms():
         )
     )
 
-    term_features.append([0, 1, 2])
+    term_features = [[0], [1], [2], [0, 1], [0, 2], [0, 1, 2]]
     term_scores.append(
         np.array(
             [

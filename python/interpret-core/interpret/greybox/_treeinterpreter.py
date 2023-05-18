@@ -114,7 +114,7 @@ class TreeInterpreter(ExplainerMixin):
             X, n_samples, feature_names, feature_types, False, 0
         )
 
-        is_classification = 0 <= n_classes
+        is_classification = n_classes >= 0
         if y is not None:
             if is_classification:
                 y = typify_classification(y)
@@ -129,12 +129,9 @@ class TreeInterpreter(ExplainerMixin):
         perf_list = []
         perf_dicts = gen_perf_dicts(predictions, y, is_classification, classes)
         for i, instance in enumerate(X):
-            data_dict = {}
-            data_dict["data_type"] = "univariate"
-
             # Performance related (conditional)
             perf_dict_obj = None if perf_dicts is None else perf_dicts[i]
-            data_dict["perf"] = perf_dict_obj
+            data_dict = {"data_type": "univariate", "perf": perf_dict_obj}
             perf_list.append(perf_dict_obj)
 
             # Names/scores

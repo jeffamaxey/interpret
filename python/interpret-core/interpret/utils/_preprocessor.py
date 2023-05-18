@@ -41,7 +41,7 @@ def _cut_continuous(native, X_col, processing, binning, max_bins, min_samples_bi
         and not isinstance(processing, list)
         and not isinstance(processing, np.ndarray)
     ):
-        if isinstance(binning, list) or isinstance(binning, np.ndarray):
+        if isinstance(binning, (list, np.ndarray)):
             msg = f"illegal binning type {binning}"
             _log.error(msg)
             raise ValueError(msg)
@@ -342,7 +342,7 @@ class EBMPreprocessor(BaseEstimator, TransformerMixin):
 
                     n_missing = len(X_col)
                     X_col = X_col[~np.isnan(X_col)]
-                    n_missing = n_missing - len(X_col)
+                    n_missing -= len(X_col)
                     missing_val_counts.itemset(feature_idx, n_missing)
                     unique_val_counts.itemset(feature_idx, len(np.unique(X_col)))
 
@@ -383,9 +383,7 @@ class EBMPreprocessor(BaseEstimator, TransformerMixin):
                     feature_bin_weights[0] = 0
                     feature_bin_weights[-1] = unknown_weight
 
-                    categories = list(map(tuple, map(reversed, categories.items())))
-                    categories.sort()  # groupby requires sorted data
-
+                    categories = sorted(map(tuple, map(reversed, categories.items())))
                     new_categories = {}
                     new_idx = 1
                     for idx, category_iter in groupby(categories, lambda x: x[0]):
@@ -460,7 +458,7 @@ class EBMPreprocessor(BaseEstimator, TransformerMixin):
             (n_samples, len(self.feature_names_in_)), np.int64, order="F"
         )
 
-        if 0 < n_samples:
+        if n_samples > 0:
             native = Native.get_native_singleton()
             category_iter = (
                 category if isinstance(category, dict) else None

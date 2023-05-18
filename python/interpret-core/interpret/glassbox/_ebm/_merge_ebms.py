@@ -91,13 +91,13 @@ def _harmonize_tensor(
             min(len(mapping_levels), len(old_feature_idxs)) - 1
         ]
         if old_feature_mapping is None:
-            old_feature_mapping = list(
+            old_feature_mapping = [
                 (x,)
                 for x in range(
                     len(old_feature_bins)
                     + (2 if isinstance(old_feature_bins, dict) else 3)
                 )
-            )
+            ]
         mapping.append(old_feature_mapping)
 
         new_bin_levels = new_bins[feature_idx]
@@ -105,10 +105,11 @@ def _harmonize_tensor(
             min(len(new_bin_levels), len(new_feature_idxs)) - 1
         ]
 
+        percentage = [1.0]
         if isinstance(new_feature_bins, dict):
             # categorical feature
 
-            old_reversed = dict()
+            old_reversed = {}
             for category, bin_idx in old_feature_bins.items():
                 category_list = old_reversed.get(bin_idx)
                 if category_list is None:
@@ -116,7 +117,7 @@ def _harmonize_tensor(
                 else:
                     category_list.append(category)
 
-            new_reversed = dict()
+            new_reversed = {}
             for category, bin_idx in new_feature_bins.items():
                 category_list = new_reversed.get(bin_idx)
                 if category_list is None:
@@ -126,13 +127,12 @@ def _harmonize_tensor(
             new_reversed = sorted(new_reversed.items())
 
             lookup = [0]
-            percentage = [1.0]
             for _, new_categories in new_reversed:
                 # if there are two items in new_categories then they should both resolve
                 # to the same index in old_feature_bins otherwise they would have been
                 # split into two categories
                 old_bin_idx = old_feature_bins.get(new_categories[0], -1)
-                if 0 <= old_bin_idx:
+                if old_bin_idx >= 0:
                     percentage.append(
                         len(new_categories) / len(old_reversed[old_bin_idx])
                     )
@@ -140,8 +140,6 @@ def _harmonize_tensor(
                     # map to the unknown bin for scores, but take no percentage of the weight
                     percentage.append(0.0)
                 lookup.append(old_bin_idx)
-            percentage.append(1.0)
-            lookup.append(-1)
         else:
             # continuous feature
 
@@ -150,7 +148,6 @@ def _harmonize_tensor(
             )
             lookup.append(len(old_feature_bins) + 1)
 
-            percentage = [1.0]
             for new_idx_minus_one, old_idx in enumerate(lookup):
                 if new_idx_minus_one == 0:
                     new_low = new_bounds[feature_idx, 0]
@@ -186,12 +183,7 @@ def _harmonize_tensor(
                     # located
                     percentage.append(0.0)
                 else:
-                    if new_low < old_low:
-                        # this can't happen except at the lowest bin where the new min can be
-                        # lower than the old min.  In that case we know the old data
-                        # had zero contribution between the new min to the old min.
-                        new_low = old_low
-
+                    new_low = max(new_low, old_low)
                     if old_high < new_high:
                         # this can't happen except at the lowest bin where the new max can be
                         # higher than the old max.  In that case we know the old data
@@ -200,17 +192,16 @@ def _harmonize_tensor(
 
                     percentage.append((new_high - new_low) / (old_high - old_low))
 
-            percentage.append(1.0)
             lookup.insert(0, 0)
-            lookup.append(-1)
-
+        lookup.append(-1)
+        percentage.append(1.0)
         lookups.append(lookup)
         percentages.append(percentage)
 
     new_shape = tuple(len(lookup) for lookup in lookups)
     n_cells = np.prod(new_shape)
 
-    if 1 < n_multiclasses:
+    if n_multiclasses > 1:
         # for multiclass we need to add another dimension for the logits of each class
         new_shape += (n_multiclasses,)
 
@@ -219,7 +210,9 @@ def _harmonize_tensor(
     mapping.reverse()
 
     # now we need to inflate it
-    intermediate_shape = (n_cells, n_multiclasses) if 1 < n_multiclasses else n_cells
+    intermediate_shape = (
+        (n_cells, n_multiclasses) if n_multiclasses > 1 else n_cells
+    )
     new_tensor = np.empty(intermediate_shape, np.float64)
     for cell_idx in range(n_cells):
         remainder = cell_idx

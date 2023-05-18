@@ -187,11 +187,7 @@ class EBMExplanation(FeatureValueExplanation):
                 else:
                     figure = plot_continuous_bar(data_dict, title=title, xtitle=xtitle)
 
-            elif (
-                self.feature_types[key] == "nominal"
-                or self.feature_types[key] == "ordinal"
-                or self.feature_types[key] == "interaction"
-            ):
+            elif self.feature_types[key] in ["nominal", "ordinal", "interaction"]:
                 figure = super().visualize(key, title)
                 figure._interpret_help_text = (
                     "The contribution (score) of the term {0} to predictions "
@@ -219,7 +215,7 @@ class EBMExplanation(FeatureValueExplanation):
         if self.explanation_type == "local":
             figure = super().visualize(key)
             figure.update_layout(
-                title="Local Explanation (" + figure.layout.title.text + ")",
+                title=f"Local Explanation ({figure.layout.title.text})",
                 xaxis_title="Contribution to Prediction",
             )
             figure._interpret_help_text = (
@@ -254,7 +250,7 @@ def is_private(estimator):
 def _clean_exclude(exclude, feature_map):
     ret = set()
     for term in exclude:
-        if isinstance(term, int) or isinstance(term, float) or isinstance(term, str):
+        if isinstance(term, (int, float, str)):
             term = (term,)
 
         cleaned = []
@@ -334,7 +330,6 @@ class EBMModel(BaseEstimator):
         if not is_private(self):
             self.max_interaction_bins = max_interaction_bins
 
-        if not is_private(self):
             self.interactions = interactions
         self.exclude = exclude
 
